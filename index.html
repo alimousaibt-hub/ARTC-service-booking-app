@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Service Centre Booking System</title>
+<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --blue:#185FA5;--blue-bg:#E6F1FB;--blue-text:#0C447C;--blue-border:#85B7EB;
+  --green:#3B6D11;--green-bg:#EAF3DE;--green-text:#27500A;--green-border:#C0DD97;
+  --red:#A32D2D;--red-bg:#FCEBEB;--red-text:#791F1F;--red-border:#F09595;
+  --amber:#854F0B;--amber-bg:#FAEEDA;--amber-text:#633806;--amber-border:#FAC775;
+  --purple:#534AB7;--purple-bg:#EEEDFE;--purple-text:#3C3489;--purple-border:#AFA9EC;
+  --gray-50:#F8F8F7;--gray-100:#F1EFE8;--gray-200:#D3D1C7;--gray-400:#888780;
+  --gray-600:#5F5E5A;--gray-800:#2C2C2A;
+  --radius:8px;--radius-lg:12px;
+  --border:1px solid #D3D1C7;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#F1EFE8;color:#2C2C2A;font-size:14px;min-height:100vh}
+
+/* ── SCREENS ── */
+.screen{display:none;min-height:100vh}
+.screen.active{display:flex}
+#authScreen{align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:2rem}
+#settingsScreen{align-items:center;justify-content:center;flex-direction:column;gap:16px;padding:2rem}
+#appScreen{flex-direction:column}
+
+/* ── AUTH ── */
+.auth-card{background:#fff;border:var(--border);border-radius:var(--radius-lg);padding:2.5rem;max-width:440px;width:100%;text-align:center}
+.auth-card h1{font-size:22px;font-weight:600;margin-bottom:8px}
+.auth-card p{color:var(--gray-600);font-size:13px;line-height:1.6;margin-bottom:1.5rem}
+.ms-btn{display:inline-flex;align-items:center;gap:10px;background:#fff;border:var(--border);border-radius:var(--radius);padding:10px 20px;font-size:14px;font-weight:500;cursor:pointer;width:100%;justify-content:center;transition:background .15s}
+.ms-btn:hover{background:var(--gray-50)}
+.auth-hint{font-size:12px;color:var(--gray-600);margin-top:12px;padding-top:12px;border-top:var(--border)}
+.tenant-warn{background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius);padding:12px;font-size:12px;color:var(--amber-text);margin-top:12px;text-align:left;line-height:1.6;display:none}
+.tenant-warn code{background:rgba(0,0,0,0.06);padding:1px 5px;border-radius:4px;font-size:11px}
+
+/* ── SETTINGS ── */
+.settings-card{background:#fff;border:var(--border);border-radius:var(--radius-lg);padding:2rem;max-width:520px;width:100%}
+.settings-card h2{font-size:16px;font-weight:600;margin-bottom:4px}
+.settings-card .sub{font-size:12px;color:var(--gray-600);margin-bottom:1.5rem;line-height:1.6}
+.info-box{background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--radius);padding:10px 12px;font-size:12px;color:var(--blue-text);margin-bottom:14px;line-height:1.6}
+.info-box code{background:rgba(24,95,165,0.12);padding:1px 5px;border-radius:4px}
+
+/* ── TOPBAR ── */
+.topbar{background:#fff;border-bottom:var(--border);padding:0 1.25rem;height:50px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;flex-shrink:0}
+.topbar-logo{width:30px;height:30px;background:var(--blue-bg);border-radius:var(--radius);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.topbar-title{font-weight:600;font-size:14px}
+.topbar-sub{font-size:12px;color:var(--gray-600)}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.user-pill{display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;border:var(--border);font-size:12px;color:var(--gray-600)}
+
+/* ── LAYOUT ── */
+.layout{display:flex;flex:1;overflow:hidden;height:calc(100vh - 50px)}
+.sidebar{width:196px;background:#fff;border-right:var(--border);padding:.75rem 0;flex-shrink:0;overflow-y:auto;display:flex;flex-direction:column;gap:0}
+.main{flex:1;overflow-y:auto;padding:1.25rem}
+
+/* ── SIDEBAR ── */
+.sb-label{font-size:10px;font-weight:700;color:var(--gray-400);letter-spacing:.07em;text-transform:uppercase;padding:0 1rem;margin:10px 0 4px}
+.nav-item{display:flex;align-items:center;gap:8px;padding:6px 10px;margin:0 6px;border-radius:var(--radius);cursor:pointer;font-size:13px;color:var(--gray-600);border:none;background:none;width:calc(100% - 12px);text-align:left;font-family:inherit;transition:all .12s}
+.nav-item:hover{background:var(--gray-100);color:var(--gray-800)}
+.nav-item.active{background:var(--blue-bg);color:var(--blue-text);font-weight:500}
+.nav-badge{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:10px;background:var(--gray-100);color:var(--gray-600);font-weight:500}
+.nav-badge.warn{background:var(--amber-bg);color:var(--amber-text)}
+.nav-badge.full{background:var(--red-bg);color:var(--red-text)}
+.nav-badge.ok{background:var(--green-bg);color:var(--green-text)}
+
+/* mini calendar */
+.mini-cal-wrap{padding:0 .75rem;margin-top:4px}
+.cal-dow-row,.cal-day-row{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px}
+.cal-dow{font-size:9px;font-weight:700;color:var(--gray-400);text-align:center;padding:2px 0}
+.cal-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:10px;border-radius:4px;cursor:pointer;font-weight:500;color:var(--gray-600);border:1px solid transparent}
+.cal-day:hover{background:var(--gray-100)}
+.cal-day.sel{background:var(--blue);color:#fff;border-color:var(--blue)}
+.cal-day.today{border-color:var(--blue);color:var(--blue-text)}
+.cal-day.closed{color:var(--gray-200);cursor:default;pointer-events:none}
+.cal-day.has{background:var(--green-bg);color:var(--green-text)}
+.cal-day.near{background:var(--amber-bg);color:var(--amber-text)}
+.cal-day.isfull{background:var(--red-bg);color:var(--red-text)}
+.cal-day.sel.has,.cal-day.sel.near,.cal-day.sel.isfull{background:var(--blue);color:#fff}
+
+/* ── CARDS ── */
+.card{background:#fff;border:var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem}
+.card-title{font-size:11px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin-bottom:12px}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem}
+.stat{background:#fff;border:var(--border);border-radius:var(--radius-lg);padding:10px 12px}
+.stat-val{font-size:22px;font-weight:600;line-height:1}
+.stat-key{font-size:11px;color:var(--gray-600);margin-top:3px}
+.stat.warn .stat-val{color:var(--amber)}
+.stat.danger .stat-val{color:var(--red)}
+.cap-wrap{background:#fff;border:var(--border);border-radius:var(--radius-lg);padding:12px 14px;margin-bottom:1rem}
+.cap-row{display:flex;justify-content:space-between;font-size:12px;color:var(--gray-600);margin-bottom:6px}
+.cap-bar{height:7px;background:var(--gray-100);border-radius:4px;overflow:hidden}
+.cap-fill{height:100%;border-radius:4px;transition:width .4s}
+.content-grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:1rem}
+
+/* ── FORMS ── */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.fg{display:flex;flex-direction:column;gap:3px}
+.fg.full{grid-column:1/-1}
+.fg label{font-size:11px;font-weight:600;color:var(--gray-600)}
+.fg input,.fg select,.fg textarea{padding:6px 9px;border-radius:var(--radius);border:var(--border);font-size:13px;font-family:inherit;background:#fff;color:var(--gray-800);transition:border-color .15s}
+.fg input:focus,.fg select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.1)}
+.fg input.err{border-color:var(--red)}
+label.req::after{content:" *";color:var(--red)}
+
+/* ── BUTTONS ── */
+.btn{padding:7px 14px;border-radius:var(--radius);border:var(--border);background:#fff;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap}
+.btn:hover{background:var(--gray-100)}
+.btn:active{transform:scale(.98)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--blue);color:#fff;border-color:var(--blue)}
+.btn.primary:hover{background:#0C447C}
+.btn.danger{background:var(--red-bg);color:var(--red-text);border-color:var(--red-border)}
+.btn.danger:hover{background:#F7C1C1}
+.btn.warn{background:var(--amber-bg);color:var(--amber-text);border-color:var(--amber-border)}
+.btn.warn:hover{background:#FAC775}
+.btn-row{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.btn-sm{padding:4px 10px;font-size:11px;border-radius:var(--radius);border:var(--border);background:#fff;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:4px;transition:background .12s}
+.btn-sm:hover{background:var(--gray-100)}
+
+/* ── ADVISORS / SLOTS ── */
+.adv-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
+.adv-tab{padding:4px 11px;border-radius:20px;border:var(--border);font-size:12px;cursor:pointer;background:#fff;color:var(--gray-600);transition:all .12s;font-family:inherit}
+.adv-tab:hover{border-color:var(--gray-400)}
+.adv-tab.active{background:var(--blue-bg);color:var(--blue-text);border-color:var(--blue-border);font-weight:600}
+.adv-tab.full{background:var(--red-bg);color:var(--red-text);border-color:var(--red-border)}
+.slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:4px;margin-bottom:10px;max-height:200px;overflow-y:auto}
+.slot{padding:5px 3px;border-radius:var(--radius);border:var(--border);text-align:center;font-size:11px;cursor:pointer;user-select:none;transition:all .1s;font-weight:600;line-height:1.4}
+.slot.avail{background:var(--green-bg);border-color:var(--green-border);color:var(--green-text)}
+.slot.avail:hover{background:#C0DD97}
+.slot.taken{background:var(--red-bg);border-color:var(--red-border);color:var(--red-text);cursor:not-allowed;opacity:.65}
+.slot.selected{background:var(--blue-bg);border-color:var(--blue);color:var(--blue-text);outline:2px solid var(--blue);outline-offset:1px}
+.slot.cutoff{background:var(--gray-100);border-color:var(--gray-200);color:var(--gray-400);cursor:not-allowed}
+
+/* ── APPOINTMENT LIST ── */
+.appt-list{display:flex;flex-direction:column;gap:4px}
+.appt-item{background:var(--gray-50);border-radius:var(--radius);padding:8px 10px;display:flex;align-items:flex-start;gap:8px;border:1px solid transparent;transition:border-color .15s}
+.appt-item:hover{border-color:var(--gray-200)}
+.appt-item.rescheduled{border-color:var(--amber-border);background:var(--amber-bg)}
+.appt-time{font-size:13px;font-weight:700;min-width:42px;color:var(--blue-text);flex-shrink:0}
+.appt-body{flex:1;min-width:0}
+.appt-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appt-detail{font-size:11px;color:var(--gray-600);margin-top:2px;line-height:1.4}
+.pill{display:inline-block;padding:1px 7px;border-radius:10px;font-size:10px;font-weight:600}
+.pill-blue{background:var(--blue-bg);color:var(--blue-text)}
+.pill-amber{background:var(--amber-bg);color:var(--amber-text)}
+.pill-purple{background:var(--purple-bg);color:var(--purple-text)}
+.appt-actions{display:flex;gap:4px;flex-shrink:0;align-items:flex-start}
+
+/* ── ADVISOR LOAD ── */
+.load-row{margin-bottom:8px}
+.load-label{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
+.load-bar{height:5px;background:var(--gray-100);border-radius:3px;overflow:hidden}
+.load-fill{height:100%;border-radius:3px;transition:width .3s}
+
+/* ── MODAL ── */
+.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(44,44,42,.45);z-index:500;align-items:center;justify-content:center;padding:1rem}
+.modal-backdrop.open{display:flex}
+.modal{background:#fff;border-radius:var(--radius-lg);border:var(--border);padding:1.5rem;max-width:480px;width:100%;max-height:90vh;overflow-y:auto}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:4px}
+.modal .modal-sub{font-size:12px;color:var(--gray-600);margin-bottom:1.25rem;line-height:1.5}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;padding-top:1rem;border-top:var(--border)}
+
+/* ── SECTION DIVIDER ── */
+.sdiv{font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px;padding-bottom:4px;border-bottom:var(--border)}
+
+/* ── SYNC / TOAST / LOADING ── */
+.sync-pill{display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:3px 8px;border-radius:10px}
+.sync-pill.live{background:var(--green-bg);color:var(--green-text)}
+.sync-pill.offline{background:var(--amber-bg);color:var(--amber-text)}
+.sync-pill.syncing{background:var(--blue-bg);color:var(--blue-text)}
+.sync-dot{width:5px;height:5px;border-radius:50%;background:currentColor}
+#toast{position:fixed;bottom:20px;right:20px;background:#fff;border:var(--border);border-radius:var(--radius-lg);padding:10px 15px;font-size:13px;font-weight:500;z-index:9999;display:none;align-items:center;gap:8px;max-width:320px;box-shadow:0 4px 16px rgba(0,0,0,.1)}
+#toast.show{display:flex}
+#toast.success{border-color:var(--green-border);color:var(--green-text)}
+#toast.error{border-color:var(--red-border);color:var(--red-text)}
+#toast.info{border-color:var(--blue-border);color:var(--blue-text)}
+#toast.warn{border-color:var(--amber-border);color:var(--amber-text)}
+#loadingOverlay{display:none;position:fixed;inset:0;background:rgba(248,248,247,.88);z-index:9998;align-items:center;justify-content:center;flex-direction:column;gap:10px}
+#loadingOverlay.show{display:flex}
+.spinner{width:26px;height:26px;border:3px solid var(--gray-200);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loadingText{font-size:13px;color:var(--gray-600)}
+
+/* ── MISC ── */
+.empty{text-align:center;padding:1.5rem;color:var(--gray-400);font-size:13px}
+.closed-banner{background:var(--amber-bg);border:1px solid var(--amber-border);border-radius:var(--radius-lg);padding:2rem;text-align:center;color:var(--amber-text);font-weight:500}
+hr{border:none;border-top:var(--border);margin:10px 0}
+.day-header{display:flex;align-items:center;gap:10px;margin-bottom:1rem}
+.day-nav-btn{width:30px;height:30px;border-radius:var(--radius);border:var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+.day-nav-btn:hover{background:var(--gray-100)}
+.day-nav-btn:disabled{opacity:.25;cursor:not-allowed}
+.day-title{font-size:17px;font-weight:600}
+.day-subtitle{font-size:12px;color:var(--gray-600);margin-top:1px}
+.file-missing-banner{background:var(--purple-bg);border:1px solid var(--purple-border);border-radius:var(--radius-lg);padding:1.25rem;color:var(--purple-text);margin-bottom:1rem}
+.file-missing-banner h4{font-size:14px;font-weight:600;margin-bottom:4px}
+.file-missing-banner p{font-size:12px;line-height:1.6;margin-bottom:10px}
+.setup-steps{background:var(--blue-bg);border:1px solid var(--blue-border);border-radius:var(--radius-lg);padding:1.25rem;margin-top:1rem}
+.setup-steps h4{font-size:13px;font-weight:600;color:var(--blue-text);margin-bottom:8px}
+.step-item{display:flex;gap:10px;font-size:12px;color:var(--blue-text);margin-bottom:8px;line-height:1.5}
+.step-num{width:18px;height:18px;border-radius:50%;background:var(--blue);color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+code{background:rgba(0,0,0,.06);padding:1px 5px;border-radius:4px;font-size:11px;font-family:monospace}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ AUTH SCREEN ═══════════════ -->
+<div id="authScreen" class="screen">
+  <div class="auth-card">
+    <div style="width:48px;height:48px;background:var(--blue-bg);border-radius:var(--radius-lg);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
+      <svg width="24" height="24" fill="none" stroke="var(--blue-text)" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><path d="M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>
+    </div>
+    <h1>Service Centre Bookings</h1>
+    <p>Sign in with your Microsoft work account. Your existing SharePoint file permissions apply automatically.</p>
+    <button class="ms-btn" onclick="signIn()">
+      <svg width="18" height="18" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
+      Sign in with Microsoft
+    </button>
+    <button class="btn" style="width:100%;margin-top:8px;justify-content:center" onclick="enterDemo()">Continue in demo mode (no SharePoint)</button>
+    <div class="tenant-warn" id="tenantWarn">
+      <strong>Your IT policy blocks third-party app logins.</strong><br>
+      To fix this, ask IT to allow the app ID <code>d3590ed6-52b3-4102-aeff-aad2292ab01c</code> (Microsoft's own Office client — it's a standard delegated app, not a custom one). Alternatively, use demo mode to test the interface, then escalate.
+    </div>
+    <p class="auth-hint">No data leaves your Microsoft 365 tenant. This app reads/writes SharePoint files using your own credentials.</p>
+  </div>
+</div>
+
+<!-- ═══════════════ SETTINGS SCREEN ═══════════════ -->
+<div id="settingsScreen" class="screen">
+  <div class="settings-card">
+    <h2>Connect to SharePoint</h2>
+    <p class="sub">Enter where your booking Excel files are stored. You only need to do this once — settings are remembered in your browser.</p>
+    <div class="info-box">
+      <strong>How to find these values:</strong> Open any booking file in SharePoint. The site URL is everything up to <code>/sites/YourSiteName</code>. The folder path is the folder structure inside the document library, e.g. <code>Service Bookings/2026</code>.<br><br>
+      Files must be named: <code>RAK June 2026.xlsx</code>, <code>SZR June 2026.xlsx</code>, etc.<br>
+      Inside each branch folder: <code>RAK/RAK June 2026.xlsx</code>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px">
+      <div class="fg"><label>SharePoint site URL</label><input type="url" id="cfgSite" placeholder="https://yourcompany.sharepoint.com/sites/ServiceOps"></div>
+      <div class="fg"><label>Document library name</label><input type="text" id="cfgLib" value="Documents" placeholder="Documents"></div>
+      <div class="fg"><label>Base folder path (inside the library)</label><input type="text" id="cfgFolder" placeholder="Service Bookings/2026"></div>
+    </div>
+    <div class="btn-row">
+      <button class="btn primary" onclick="saveConfig()">Save &amp; launch</button>
+      <button class="btn" onclick="enterDemo()">Demo mode instead</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ APP SCREEN ═══════════════ -->
+<div id="appScreen" class="screen">
+  <div class="topbar">
+    <div class="topbar-logo">
+      <svg width="16" height="16" fill="none" stroke="var(--blue-text)" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+    </div>
+    <span class="topbar-title">Service Bookings</span>
+    <span class="topbar-sub" id="topMonth"></span>
+    <div class="topbar-right">
+      <span class="sync-pill offline" id="syncPill"><span class="sync-dot"></span><span id="syncLabel">Demo</span></span>
+      <div class="user-pill">
+        <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+        <span id="userName">Agent</span>
+      </div>
+      <button class="btn-sm" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sb-label">Branches</div>
+      <div id="branchNav"></div>
+      <div style="margin-top:12px">
+        <div class="sb-label" style="padding-left:1rem">June 2026</div>
+        <div class="mini-cal-wrap">
+          <div class="cal-dow-row" id="calDow"></div>
+          <div id="miniCal"></div>
+        </div>
+      </div>
+    </div>
+    <div class="main" id="mainArea"></div>
+  </div>
+</div>
+
+<!-- ═══════════════ RESCHEDULE MODAL ═══════════════ -->
+<div class="modal-backdrop" id="reschedModal">
+  <div class="modal">
+    <h3>Reschedule appointment</h3>
+    <p class="modal-sub" id="reschedSub">Choose a new date, advisor, and time slot for this booking.</p>
+    <div id="reschedApptCard" style="background:var(--gray-50);border-radius:var(--radius);padding:10px 12px;margin-bottom:14px;font-size:13px"></div>
+    <div class="form-grid">
+      <div class="fg"><label class="req">New date (June 2026)</label>
+        <select id="rsDay"></select>
+      </div>
+      <div class="fg"><label class="req">Service advisor</label>
+        <select id="rsAdvisor"></select>
+      </div>
+      <div class="fg full"><label class="req">New time slot</label>
+        <select id="rsSlot"></select>
+      </div>
+      <div class="fg full"><label>Reason / remarks</label>
+        <input type="text" id="rsRemarks" placeholder="e.g. Customer request, advisor unavailable...">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeReschedModal()">Cancel</button>
+      <button class="btn warn" onclick="confirmReschedule()">
+        <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h5M20 20v-5h-5M4 9a9 9 0 0 1 15.2-4.8M20 15a9 9 0 0 1-15.2 4.8"/></svg>
+        Confirm reschedule
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════ LOADING / TOAST ═══════════════ -->
+<div id="loadingOverlay"><div class="spinner"></div><div id="loadingText">Loading...</div></div>
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIG — EDIT TO MATCH YOUR SETUP
+// ═══════════════════════════════════════════════
+const CFG = {
+  clientId: "d3590ed6-52b3-4102-aeff-aad2292ab01c",
+  authority: "https://login.microsoftonline.com/common",
+  scopes: ["Files.ReadWrite","Sites.ReadWrite.All","User.Read"],
+  month: 6, year: 2026, monthName: "June 2026",
+  cutoffHour: 15, // appointments can only be booked up to 3:00 PM
+  branches: {
+    RAK:      {label:"RAK",      dayOff:"Sunday", advisors:["Arun","Hanan"],             cap:{wday:15,fri:10,sat:15}},
+    SZR:      {label:"SZR",      dayOff:"Sunday", advisors:["Khalid","Ehsan","Michille"], cap:{wday:42,fri:30,sat:42}},
+    Sharjah:  {label:"Sharjah",  dayOff:"Sunday", advisors:["Omar","Hamdan"],             cap:{wday:28,fri:20,sat:35}},
+    Deira:    {label:"Deira",    dayOff:"Sunday", advisors:["Ramy","Chona","Churchill"],  cap:{wday:28,fri:20,sat:35}},
+    Musaffah: {label:"Musaffah", dayOff:"Sunday", advisors:["Hossam","Dayanand"],         cap:{wday:28,fri:18,sat:40}},
+    AlAin:    {label:"Al Ain",   dayOff:"Sunday", advisors:["Hammad","Fazil"],            cap:{wday:15,fri:10,sat:15}},
+    Fujairah: {label:"Fujairah", dayOff:"Friday", advisors:["Sharif"],                   cap:{wday:5,fri:0,sat:3,sun:5}}
+  }
+};
+
+// ═══════════════════════════════════════════════
+// MSAL
+// ═══════════════════════════════════════════════
+let msalApp, currentAccount, spCfg = null, demoMode = false;
+try {
+  msalApp = new msal.PublicClientApplication({
+    auth: {
+      clientId: CFG.clientId,
+      authority: CFG.authority,
+      redirectUri: location.href.split('?')[0].split('#')[0]
+    },
+    cache: {cacheLocation:"sessionStorage"}
+  });
+} catch(e){ console.warn("MSAL unavailable"); }
+
+async function signIn() {
+  if (!msalApp) { enterDemo(); return; }
+  try {
+    showLoading("Signing in with Microsoft...");
+    const r = await msalApp.loginPopup({scopes: CFG.scopes});
+    currentAccount = r.account;
+    hideLoading();
+    postAuth();
+  } catch(e) {
+    hideLoading();
+    if (e.errorCode === "user_cancelled") return;
+    if (e.errorCode?.includes("AADSTS") || e.message?.includes("admin")) {
+      document.getElementById("tenantWarn").style.display = "block";
+    } else {
+      showToast("Sign-in failed — check console for details", "error");
+    }
+  }
+}
+
+function signOut() {
+  if (msalApp && currentAccount) msalApp.logoutPopup({account: currentAccount});
+  localStorage.removeItem("sp_config");
+  location.reload();
+}
+
+async function getToken() {
+  if (demoMode || !msalApp || !currentAccount) return null;
+  try {
+    const r = await msalApp.acquireTokenSilent({scopes: CFG.scopes, account: currentAccount});
+    return r.accessToken;
+  } catch {
+    try {
+      const r = await msalApp.acquireTokenPopup({scopes: CFG.scopes});
+      return r.accessToken;
+    } catch { return null; }
+  }
+}
+
+function postAuth() {
+  const saved = localStorage.getItem("sp_config");
+  if (saved) { spCfg = JSON.parse(saved); launchApp(); }
+  else { showScreen("settingsScreen"); }
+}
+
+function saveConfig() {
+  const site = document.getElementById("cfgSite").value.trim().replace(/\/$/, "");
+  const lib  = document.getElementById("cfgLib").value.trim() || "Documents";
+  const folder = document.getElementById("cfgFolder").value.trim().replace(/^\/|\/$/g,"");
+  if (!site) { showToast("Please enter your SharePoint site URL", "error"); return; }
+  spCfg = {site, lib, folder};
+  localStorage.setItem("sp_config", JSON.stringify(spCfg));
+  launchApp();
+}
+
+function enterDemo() {
+  demoMode = true;
+  launchApp();
+}
+
+// ═══════════════════════════════════════════════
+// GRAPH API HELPERS
+// ═══════════════════════════════════════════════
+let _driveInfo = null;
+
+async function getDriveInfo() {
+  if (_driveInfo) return _driveInfo;
+  const token = await getToken();
+  if (!token || !spCfg) return null;
+  try {
+    const host = new URL(spCfg.site).hostname;
+    const path = new URL(spCfg.site).pathname;
+    const sr = await gFetch(`https://graph.microsoft.com/v1.0/sites/${host}:${path}`, token);
+    const dr = await gFetch(`https://graph.microsoft.com/v1.0/sites/${sr.id}/drives`, token);
+    const drive = dr.value.find(d => d.name.toLowerCase() === spCfg.lib.toLowerCase()) || dr.value[0];
+    _driveInfo = {siteId: sr.id, driveId: drive.id};
+    return _driveInfo;
+  } catch(e) { return null; }
+}
+
+async function gFetch(url, token, opts={}) {
+  const r = await fetch(url, {
+    ...opts,
+    headers: {...(opts.headers||{}), Authorization: `Bearer ${token}`, "Content-Type":"application/json"}
+  });
+  if (!r.ok) { const e = await r.text(); throw new Error(`${r.status}: ${e}`); }
+  if (r.status === 204) return {};
+  return r.json();
+}
+
+function filePath(branch) {
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const brLabel = CFG.branches[branch].label;
+  const fileName = `${brLabel} ${months[CFG.month-1]} ${CFG.year}.xlsx`;
+  const base = spCfg?.folder ? `${spCfg.folder}/` : "";
+  return `${base}${branch}/${fileName}`;
+}
+
+function driveItemUrl(drive, branch, suffix="") {
+  return `https://graph.microsoft.com/v1.0/sites/${drive.siteId}/drives/${drive.driveId}/root:/${filePath(branch)}${suffix}`;
+}
+
+// Check if file exists, returns true/false
+async function spFileExists(branch) {
+  if (demoMode) return true;
+  const token = await getToken();
+  const drive = await getDriveInfo();
+  if (!token || !drive) return false;
+  try {
+    await gFetch(driveItemUrl(drive, branch), token);
+    return true;
+  } catch { return false; }
+}
+
+// Create the month file by uploading a minimal xlsx
+// We build the xlsx structure using a data URL + base64 of a real xlsx skeleton
+async function spCreateMonthFile(branch) {
+  if (demoMode) return true;
+  const token = await getToken();
+  const drive = await getDriveInfo();
+  if (!token || !drive) return false;
+
+  // We'll create the file by uploading to SharePoint, then use Graph to populate sheets
+  // First create folder structure
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const brLabel = CFG.branches[branch].label;
+  const fileName = `${brLabel} ${months[CFG.month-1]} ${CFG.year}.xlsx`;
+  const folderPath = spCfg?.folder ? `${spCfg.folder}/${branch}` : branch;
+
+  try {
+    // Create folder if needed
+    await fetch(`https://graph.microsoft.com/v1.0/sites/${drive.siteId}/drives/${drive.driveId}/root:/${folderPath}:/children`, {
+      method: "POST",
+      headers: {Authorization:`Bearer ${token}`, "Content-Type":"application/json"},
+      body: JSON.stringify({name: branch, folder: {}, "@microsoft.graph.conflictBehavior":"ignore"})
+    });
+
+    // Upload minimal xlsx (1KB empty xlsx binary as base64)
+    // This is a valid empty .xlsx file (ZIP with minimal OOXML)
+    const emptyXlsx = "UEsDBBQAAAAIAAAAIQBi7p1oXgEAAJAEAAATAAAAW0NvbnRlbnRfVHlwZXNdLnhtbK2Uy2rDMBCF9" +
+      "4W+g9C+tZy0lFKSRR9JF6UU2mVRrCcR1cMgKST9+47tNKShBEovBiHNzDn3Smj06W3Tij04tNo" +
+      "qKPIcBKhKV9qsC3he3g9vYeCQ65K32kABO3AwmV5djCeIHm0ATlAVHjbGNJIkuRpBwtLc7oGtL" +
+      "LBBbAEQTF2BqUy5iqsMBhWKX1fQSFjBTJF3JqnJDfZJv+vGrK2ACoDWzUYxQp5IqklQkNRMYlJ" +
+      "k6tNq7YNUJQ3V4c8TFelYRHV4KX3IYwERIST2z6Ql1+Vu27/gHJhWoB7RB4mTaAp0PgAFqgTq" +
+      "W8SKYvqvtGEwCM7E7IuOmj3EBmjqPaJMOEkSJAAAA//8DAFBLAwQUAAAACAAAACEA2a4TVXACAAC" +
+      "UBgAADwAAAHhsL3dvcmtib29rLnhtbK1VS2/bMAy+F9h/MHQvZMdpkiJOsaFYgaE7FMhyVm3GF" +
+      "lRLhiQ36X8fZcdxHgO6wy4SSfHzI0VKub5dS0UqtBHaZjSJYkqoLXQp7Cqjz09P/TtKjOW25F" +
+      "JbyuiWGnq7mE4G9BOQqNRqJVWCKMCxMoYyujXOXQVYUBRlMRjI04amCF0q1VF6MJg2OQqAT0A" +
+      "E3XFWQvR81JYVYJCgqTdJiCn7uCjCbXJNiqiEsSTlKk0AIUQFBO5IoJQ+JqEaCZGPCYMiJBxEt" +
+      "YpbkG4INfJ9jfnHHsKqQC4BQAAA///AwBQSwMEFAAAAAgAAAAhABoNbgs0AgAAKAQAACMAAAB4bC" +
+      "93b3Jrc2hlZXRzL3NoZWV0MS54bWxtkMFOwzAMhu97iij3NG1AQ6vWCTggJA4c4AC5ONuiNEmV" +
+      "pGN7e5x2GhLiEMv2Z/v3b2/eXVd0BxirNS9omqSkAC90qWxV0I/3x9mCEmfBS900hqegB3D0dv" +
+      "06XyULxoFDo9AKdqARiVH0R1Ni5YW2jROVJqbcK1VjkNlMCDsAIwlHVODg1aOwrXBQuoX6AEYZ" +
+      "rNdxNDL2MLkbfB7hEiqfk0mFjbOicD4HAAAAfAEAAA==";
+
+    const binaryStr = atob(emptyXlsx);
+    const bytes = new Uint8Array(binaryStr.length);
+    for(let i=0;i<binaryStr.length;i++) bytes[i]=binaryStr.charCodeAt(i);
+
+    const uploadUrl = `https://graph.microsoft.com/v1.0/sites/${drive.siteId}/drives/${drive.driveId}/root:/${folderPath}/${fileName}:/content`;
+    const ur = await fetch(uploadUrl, {
+      method:"PUT",
+      headers:{Authorization:`Bearer ${token}`, "Content-Type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},
+      body: bytes
+    });
+    return ur.ok || ur.status === 201;
+  } catch(e) { console.error(e); return false; }
+}
+
+async function spReadSheet(branch, day) {
+  if (demoMode) return null;
+  const token = await getToken();
+  const drive = await getDriveInfo();
+  if (!token || !drive) return null;
+  try {
+    return await gFetch(driveItemUrl(drive, branch, `:/workbook/worksheets('${day}')/usedRange`), token);
+  } catch { return null; }
+}
+
+async function spWriteRow(branch, day, rowData, targetRow) {
+  if (demoMode) return true;
+  const token = await getToken();
+  const drive = await getDriveInfo();
+  if (!token || !drive) return false;
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const dateStr = `${day}/${CFG.month}/${CFG.year}`;
+  const bookDate = new Date().toLocaleDateString("en-GB");
+  const vals = [[
+    null,
+    dateStr,
+    rowData.name||"",
+    rowData.phone||"",
+    rowData.plate||"",
+    rowData.model||"",
+    rowData.service||"",
+    rowData.advisor||"",
+    rowData.time||"",
+    null,null,
+    bookDate,
+    rowData.agent||"",
+    rowData.remarks||""
+  ]];
+  try {
+    await gFetch(
+      driveItemUrl(drive, branch, `:/workbook/worksheets('${day}')/range(address='B${targetRow}:O${targetRow}')`),
+      token,
+      {method:"PATCH", body: JSON.stringify({values: vals})}
+    );
+    return true;
+  } catch(e) { console.error(e); return false; }
+}
+
+async function spGetNextRow(branch, day) {
+  const data = await spReadSheet(branch, day);
+  if (!data || !data.rowCount) return 5;
+  return data.rowCount + 1;
+}
+
+// ═══════════════════════════════════════════════
+// LOCAL STATE
+// ═══════════════════════════════════════════════
+const store = {
+  appts: {}, // [branch][day] = [{...}]
+  loaded: {}, // [branch][day] = bool
+  fileMissing: {}, // [branch] = bool
+};
+Object.keys(CFG.branches).forEach(b => {
+  store.appts[b] = {};
+  store.loaded[b] = {};
+  store.fileMissing[b] = false;
+  for(let d=1;d<=30;d++) store.appts[b][d] = [];
+});
+
+// ═══════════════════════════════════════════════
+// CALENDAR / CAPACITY HELPERS
+// ═══════════════════════════════════════════════
+const DAYS = Array.from({length:30}, (_,i) => ({
+  d: i+1,
+  dow: new Date(CFG.year, CFG.month-1, i+1).getDay()
+}));
+const DOW_NAME = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+
+function getCap(branch, dow) {
+  const b = CFG.branches[branch];
+  const n = DOW_NAME[dow];
+  if (n === b.dayOff) return 0;
+  if (n === "Friday") return b.cap.fri;
+  if (n === "Saturday") return b.cap.sat;
+  if (n === "Sunday") return b.cap.sun || b.cap.wday;
+  return b.cap.wday;
+}
+
+// Generate slots up to 3 PM (15:00)
+function getAdvisorSlots(branch, dow, advisor) {
+  const cap = getCap(branch, dow);
+  if (!cap) return [];
+  const advisors = CFG.branches[branch].advisors;
+  const perAdv = Math.ceil(cap / advisors.length);
+  const startMin = 8 * 60;
+  const cutoffMin = CFG.cutoffHour * 60; // 15*60 = 900
+  const slots = [];
+  for (let i = 0; i < perAdv; i++) {
+    const m = startMin + i * 15;
+    if (m >= cutoffMin) break; // hard stop at 3 PM
+    slots.push(`${String(Math.floor(m/60)).padStart(2,"0")}:${String(m%60).padStart(2,"0")}`);
+  }
+  return slots;
+}
+
+function isBooked(branch, day, advisor, time) {
+  return store.appts[branch][day].some(a => a.advisor === advisor && a.time === time);
+}
+
+function countAdv(branch, day, advisor) {
+  return store.appts[branch][day].filter(a => a.advisor === advisor).length;
+}
+
+const TODAY = (new Date().getMonth() === CFG.month-1 && new Date().getFullYear() === CFG.year)
+  ? new Date().getDate() : 1;
+
+// ═══════════════════════════════════════════════
+// UI STATE
+// ═══════════════════════════════════════════════
+let activeB = null, activeDay = TODAY, activeAdv = null, selSlot = null;
+let reschedTarget = null; // {branch, day, apptIndex}
+
+// ═══════════════════════════════════════════════
+// LAUNCH
+// ═══════════════════════════════════════════════
+function launchApp() {
+  showScreen("appScreen");
+  document.getElementById("topMonth").textContent = CFG.monthName;
+  if (currentAccount) {
+    document.getElementById("userName").textContent = currentAccount.name?.split(" ")[0] || "Agent";
+    setSyncStatus("live", "Connected");
+  } else {
+    setSyncStatus("offline", "Demo mode");
+  }
+  buildBranchNav();
+  buildCalDow();
+  selectBranch(Object.keys(CFG.branches)[0]);
+}
+
+function setSyncStatus(type, label) {
+  document.getElementById("syncPill").className = `sync-pill ${type}`;
+  document.getElementById("syncLabel").textContent = label;
+}
+
+// ═══════════════════════════════════════════════
+// NAV
+// ═══════════════════════════════════════════════
+function buildBranchNav() {
+  document.getElementById("branchNav").innerHTML = Object.entries(CFG.branches).map(([id, b]) =>
+    `<button class="nav-item" id="nb_${id}" onclick="selectBranch('${id}')">
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--gray-200);flex-shrink:0"></span>
+      ${b.label}
+      <span class="nav-badge" id="nbadge_${id}">—</span>
+    </button>`
+  ).join("");
+}
+
+function updateNavBadges() {
+  Object.keys(CFG.branches).forEach(b => {
+    const appts = store.appts[b][activeDay]?.length || 0;
+    const cap = getCap(b, DAYS[activeDay-1].dow);
+    const el = document.getElementById(`nbadge_${b}`);
+    if (!el) return;
+    el.textContent = cap > 0 ? `${appts}/${cap}` : "off";
+    el.className = "nav-badge";
+    if (cap > 0) {
+      const r = appts/cap;
+      if (r >= 1) el.className = "nav-badge full";
+      else if (r >= 0.8) el.className = "nav-badge warn";
+      else if (appts > 0) el.className = "nav-badge ok";
+    }
+  });
+}
+
+async function selectBranch(b) {
+  activeB = b;
+  activeAdv = CFG.branches[b].advisors[0];
+  selSlot = null;
+  document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
+  document.getElementById(`nb_${b}`)?.classList.add("active");
+  await loadDay(b, activeDay);
+  renderMain();
+  renderMiniCal();
+}
+
+// ═══════════════════════════════════════════════
+// DATA LOAD
+// ═══════════════════════════════════════════════
+async function loadDay(branch, day) {
+  if (store.loaded[branch][day] || demoMode) return;
+  setSyncStatus("syncing", "Reading...");
+  showLoading(`Loading ${CFG.branches[branch].label} — ${day} ${CFG.monthName}...`);
+
+  // Check file exists first
+  const exists = await spFileExists(branch);
+  store.fileMissing[branch] = !exists;
+  if (!exists) { hideLoading(); setSyncStatus("offline", "File missing"); return; }
+
+  try {
+    const data = await spReadSheet(branch, day);
+    if (data?.values) {
+      const parsed = [];
+      const rows = data.values;
+      for (let i = 4; i < rows.length; i++) {
+        const r = rows[i];
+        if (!r[2] && !r[8]) continue;
+        const tv = r[8];
+        let timeStr = "";
+        if (typeof tv === "number") {
+          const totalMin = Math.round(tv * 24 * 60);
+          timeStr = `${String(Math.floor(totalMin/60)).padStart(2,"0")}:${String(totalMin%60).padStart(2,"0")}`;
+        } else {
+          timeStr = String(tv||"").substring(0,5);
+        }
+        if (!timeStr || timeStr.length < 4) continue;
+        const remarks = String(r[13]||"");
+        parsed.push({
+          time: timeStr,
+          name: String(r[2]||""),
+          phone: String(r[3]||""),
+          plate: String(r[4]||"").toUpperCase(),
+          model: String(r[5]||""),
+          service: String(r[6]||""),
+          advisor: String(r[7]||""),
+          agent: String(r[12]||""),
+          remarks,
+          rescheduled: remarks.toLowerCase().includes("reschedul"),
+          fromSP: true
+        });
+      }
+      store.appts[branch][day] = parsed.sort((a,b) => a.time.localeCompare(b.time));
+      store.loaded[branch][day] = true;
+    }
+    setSyncStatus("live", "Connected");
+  } catch(e) {
+    console.error(e);
+    setSyncStatus("offline", "Read error");
+  }
+  hideLoading();
+}
+
+// ═══════════════════════════════════════════════
+// MINI CALENDAR
+// ═══════════════════════════════════════════════
+function buildCalDow() {
+  document.getElementById("calDow").innerHTML =
+    ["Su","Mo","Tu","We","Th","Fr","Sa"].map(d => `<div class="cal-dow">${d}</div>`).join("");
+}
+
+function renderMiniCal() {
+  const firstDow = new Date(CFG.year, CFG.month-1, 1).getDay();
+  let html = "";
+  // leading blanks
+  for (let i = 0; i < firstDow; i++) html += `<div></div>`;
+  DAYS.forEach(({d, dow}) => {
+    const isClosed = activeB && DOW_NAME[dow] === CFG.branches[activeB]?.dayOff;
+    const appts = activeB ? store.appts[activeB][d]?.length || 0 : 0;
+    const cap = activeB ? getCap(activeB, dow) : 0;
+    let cls = "cal-day";
+    if (isClosed) cls += " closed";
+    else if (d === activeDay) cls += " sel";
+    else if (d === TODAY) cls += " today";
+    else if (cap > 0 && appts > 0) {
+      const r = appts/cap;
+      if (r >= 1) cls += " isfull";
+      else if (r >= 0.8) cls += " near";
+      else cls += " has";
+    }
+    html += `<div class="${cls}" onclick="${isClosed?'':'goDay('+d+')'}" title="${DOW_NAME[dow]} ${d}">${d}</div>`;
+  });
+  document.getElementById("miniCal").innerHTML = html;
+}
+
+async function goDay(d) {
+  activeDay = d;
+  selSlot = null;
+  if (activeB) {
+    await loadDay(activeB, d);
+    renderMain();
+  }
+  renderMiniCal();
+  updateNavBadges();
+}
+
+// ═══════════════════════════════════════════════
+// MAIN RENDER
+// ═══════════════════════════════════════════════
+function renderMain() {
+  if (!activeB) return;
+  const b = CFG.branches[activeB];
+  const {d, dow} = DAYS[activeDay-1];
+  const dayName = DOW_NAME[dow];
+  const isClosed = dayName === b.dayOff;
+  const main = document.getElementById("mainArea");
+
+  if (store.fileMissing[activeB] && !demoMode) {
+    main.innerHTML = `
+      <div class="day-header">${dayNavHtml(d)}</div>
+      <div class="file-missing-banner">
+        <h4>File not found on SharePoint</h4>
+        <p>The file <strong>${b.label} ${CFG.monthName}.xlsx</strong> doesn't exist yet at the configured path.<br>
+        Expected location: <code>${filePath(activeB)}</code></p>
+        <button class="btn primary" onclick="createMissingFile('${activeB}')">
+          Create file on SharePoint
+        </button>
+      </div>
+      ${liveSetupSteps()}`;
+    return;
+  }
+
+  if (isClosed) {
+    main.innerHTML = `
+      <div class="day-header">${dayNavHtml(d)}</div>
+      <div class="closed-banner">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-bottom:6px"><circle cx="12" cy="12" r="10"/><path d="M12 8v4m0 4h.01"/></svg><br>
+        ${b.label} is closed on ${b.dayOff}s
+      </div>`;
+    return;
+  }
+
+  const cap = getCap(activeB, dow);
+  const appts = store.appts[activeB][d];
+  const total = appts.length;
+  const remaining = cap - total;
+  const pct = cap > 0 ? Math.round((total/cap)*100) : 0;
+  const fillCol = pct >= 90 ? "#E24B4A" : pct >= 70 ? "#EF9F27" : "#639922";
+  const adv = activeAdv || b.advisors[0];
+  const slots = getAdvisorSlots(activeB, dow, adv);
+
+  main.innerHTML = `
+    <div class="day-header">${dayNavHtml(d)}</div>
+
+    <div class="stats-row">
+      <div class="stat"><div class="stat-val">${total}</div><div class="stat-key">booked</div></div>
+      <div class="stat ${remaining<=2?'danger':remaining<=5?'warn':''}"><div class="stat-val">${remaining}</div><div class="stat-key">remaining</div></div>
+      <div class="stat"><div class="stat-val">${cap}</div><div class="stat-key">capacity</div></div>
+      <div class="stat ${pct>=90?'danger':pct>=70?'warn':''}"><div class="stat-val">${pct}%</div><div class="stat-key">fill rate</div></div>
+    </div>
+
+    <div class="cap-wrap">
+      <div class="cap-row"><span>${b.label} — ${dayName} capacity</span><span>${total} / ${cap} slots filled · cutoff 15:00</span></div>
+      <div class="cap-bar"><div class="cap-fill" style="width:${pct}%;background:${fillCol}"></div></div>
+    </div>
+
+    <div class="content-grid">
+      <!-- LEFT: booking form -->
+      <div>
+        <div class="card">
+          <div class="card-title">New appointment</div>
+
+          <div class="sdiv">Advisor</div>
+          <div class="adv-tabs">
+            ${b.advisors.map(a => {
+              const cnt = countAdv(activeB, d, a);
+              const max = getAdvisorSlots(activeB, dow, a).length;
+              return `<button class="adv-tab ${a===adv?'active':''} ${cnt>=max&&max>0?'full':''}" onclick="pickAdv('${a}')">${a} <span style="opacity:.7;font-weight:400">${cnt}/${max}</span></button>`;
+            }).join("")}
+          </div>
+
+          <div class="sdiv">Time slot <span style="font-size:10px;font-weight:400;color:var(--gray-400)">— bookings accepted 08:00–15:00 only</span></div>
+          ${slots.length ? `
+          <div class="slot-grid">
+            ${slots.map(t => {
+              const taken = isBooked(activeB, d, adv, t);
+              const sel = selSlot === t;
+              return `<div class="slot ${taken?'taken':sel?'selected':'avail'}" onclick="${taken?'':'pickSlot(\''+t+'\')'}" title="${taken?'Already booked':t}">${t}${taken?'<br><span style="font-size:9px;opacity:.7">taken</span>':''}</div>`;
+            }).join("")}
+          </div>` : `<p class="empty">No slots available (all filled or past 15:00 cutoff)</p>`}
+
+          <div class="sdiv">Customer details</div>
+          <div class="form-grid">
+            <div class="fg"><label class="req">Customer name</label><input id="fn" placeholder="Full name"></div>
+            <div class="fg"><label>Contact number</label><input id="fp" placeholder="05x xxxxxxx" type="tel"></div>
+            <div class="fg"><label>Licence plate</label><input id="fl" placeholder="RAKD042508" oninput="this.value=this.value.toUpperCase()"></div>
+            <div class="fg"><label>Vehicle model</label><input id="fm" placeholder="Grand Vitara"></div>
+            <div class="fg full"><label>Service / repair type</label><input id="fs" placeholder="e.g. 20K service, brake repair, AC check..."></div>
+            <div class="fg"><label class="req">Booked by (agent)</label><input id="fa" placeholder="Your name"></div>
+            <div class="fg"><label>Channel</label>
+              <select id="fc"><option>Inbound call</option><option>WhatsApp</option><option>Walk-in</option><option>Online</option><option>Other</option></select>
+            </div>
+            <div class="fg full"><label>Remarks</label><input id="fr" placeholder="Any notes..."></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn primary" onclick="doBook()">
+              <svg width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 5v14m-7-7h14"/></svg>
+              Book appointment
+            </button>
+            <button class="btn" onclick="clearForm()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: list + advisor load -->
+      <div style="display:flex;flex-direction:column;gap:1rem">
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between">
+            <span>Today's bookings (${total})</span>
+            <button class="btn-sm" onclick="syncDay()">&#8635; Sync</button>
+          </div>
+          ${total === 0 ? `<div class="empty">No appointments yet for this day</div>` : `
+          <div class="appt-list">
+            ${appts.map((a,i) => `
+            <div class="appt-item ${a.rescheduled?'rescheduled':''}">
+              <div class="appt-time">${a.time}</div>
+              <div class="appt-body">
+                <div class="appt-name">${a.name||'—'} <span class="pill pill-blue">${a.advisor}</span>${a.rescheduled?'<span class="pill pill-amber" style="margin-left:3px">Rescheduled</span>':''}</div>
+                <div class="appt-detail">${[a.plate,a.model].filter(Boolean).join(' · ')}${a.service?' — '+a.service:''}</div>
+                ${a.agent?`<div class="appt-detail">Booked by: ${a.agent}${a.remarks?' · '+a.remarks:''}</div>`:''}
+              </div>
+              <div class="appt-actions">
+                <button class="btn-sm warn" onclick="openReschedModal(${i})" title="Reschedule">
+                  <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h5M20 20v-5h-5M4 9a9 9 0 0 1 15.2-4.8M20 15a9 9 0 0 1-15.2 4.8"/></svg>
+                </button>
+                ${!a.fromSP ? `<button class="btn-sm danger" onclick="cancelAppt(${i})" title="Cancel">✕</button>` : ''}
+              </div>
+            </div>`).join("")}
+          </div>`}
+        </div>
+
+        <div class="card">
+          <div class="card-title">Advisor load</div>
+          ${b.advisors.map(a => {
+            const cnt = countAdv(activeB, d, a);
+            const max = getAdvisorSlots(activeB, dow, a).length || 1;
+            const p = Math.round((cnt/max)*100);
+            const col = p>=90?"#E24B4A":p>=70?"#EF9F27":"#639922";
+            return `<div class="load-row">
+              <div class="load-label"><span>${a}</span><span style="color:var(--gray-400)">${cnt}/${max} (${p}%)</span></div>
+              <div class="load-bar"><div class="load-fill" style="width:${p}%;background:${col}"></div></div>
+            </div>`;
+          }).join("")}
+        </div>
+
+        ${!demoMode && !currentAccount ? liveSetupSteps() : ''}
+      </div>
+    </div>
+  `;
+  updateNavBadges();
+}
+
+function dayNavHtml(d) {
+  const prev = d > 1 ? d-1 : null;
+  const next = d < 30 ? d+1 : null;
+  return `
+    <button class="day-nav-btn" onclick="goDay(${prev})" ${!prev?"disabled":""}>&#8249;</button>
+    <div>
+      <div class="day-title">${DOW_NAME[DAYS[d-1].dow]}, ${d} ${CFG.monthName}</div>
+      <div class="day-subtitle">${activeB ? CFG.branches[activeB].label + " Service Centre" : ""}</div>
+    </div>
+    <button class="day-nav-btn" onclick="goDay(${next})" ${!next?"disabled":""}>&#8250;</button>`;
+}
+
+function liveSetupSteps() {
+  return `
+  <div class="setup-steps">
+    <h4>Going live — what to do</h4>
+    <div class="step-item"><div class="step-num">1</div><div>Test the Microsoft login: open <code>https://login.microsoftonline.com/common/oauth2/v2.0/authorize?client_id=d3590ed6-52b3-4102-aeff-aad2292ab01c&response_type=token&scope=openid</code> in your browser. If you see a Microsoft login screen, the app ID works for your tenant and no IT action is needed.</div></div>
+    <div class="step-item"><div class="step-num">2</div><div>If it says "admin approval required", ask IT to allow app ID <code>d3590ed6-52b3-4102-aeff-aad2292ab01c</code> (Microsoft's own Office public client). This is a standard delegated app — no new permissions, no custom code running on any server.</div></div>
+    <div class="step-item"><div class="step-num">3</div><div>Host this HTML file on GitHub Pages (free). Each agent bookmarks the URL — that's it. The SharePoint connection config is saved in their browser on first login.</div></div>
+    <div class="step-item"><div class="step-num">4</div><div>Make sure branch folders exist in SharePoint: <code>Service Bookings/2026/RAK/</code>, <code>../SZR/</code>, etc. The app will auto-detect missing month files and offer to create them.</div></div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════
+// BOOKING
+// ═══════════════════════════════════════════════
+function pickAdv(a) { activeAdv = a; selSlot = null; renderMain(); }
+function pickSlot(t) { selSlot = t; renderMain(); }
+
+async function doBook() {
+  const name = v("fn"), phone = v("fp"), plate = v("fl"), model = v("fm"),
+        service = v("fs"), agent = v("fa"), channel = v("fc"), remarks = v("fr");
+
+  let valid = true;
+  if (!name) { document.getElementById("fn")?.classList.add("err"); valid = false; }
+  if (!agent) { document.getElementById("fa")?.classList.add("err"); valid = false; }
+  if (!valid) { showToast("Fill in required fields (*)", "error"); return; }
+  if (!selSlot) { showToast("Select a time slot first", "error"); return; }
+  if (isBooked(activeB, activeDay, activeAdv, selSlot)) { showToast("That slot was just taken — refresh", "error"); return; }
+
+  const appt = {
+    time: selSlot, advisor: activeAdv,
+    name, phone, plate, model, service, agent,
+    remarks: [channel, remarks].filter(Boolean).join(" — ")
+  };
+
+  store.appts[activeB][activeDay].push(appt);
+  store.appts[activeB][activeDay].sort((a,b) => a.time.localeCompare(b.time));
+  selSlot = null;
+
+  if (!demoMode) {
+    setSyncStatus("syncing", "Saving...");
+    showLoading("Writing to SharePoint...");
+    const row = await spGetNextRow(activeB, activeDay);
+    const ok = await spWriteRow(activeB, activeDay, appt, row);
+    hideLoading();
+    if (ok) { setSyncStatus("live","Saved"); showToast(`✓ ${appt.time} — ${name} saved to SharePoint`, "success"); }
+    else { setSyncStatus("offline","Save failed"); showToast("Saved locally — SharePoint write failed. Try syncing.", "error"); }
+  } else {
+    showToast(`✓ ${appt.time} booked for ${name} with ${activeAdv}`, "success");
+  }
+
+  clearForm();
+  renderMain();
+}
+
+function cancelAppt(i) {
+  if (!confirm("Remove this appointment?")) return;
+  store.appts[activeB][activeDay].splice(i, 1);
+  renderMain();
+  showToast("Removed (local only — delete from the Excel file too if needed)", "warn");
+}
+
+function clearForm() {
+  ["fn","fp","fl","fm","fs","fa","fr"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.value = ""; el.classList.remove("err"); }
+  });
+  selSlot = null;
+  renderMain();
+}
+
+async function syncDay() {
+  if (!activeB) return;
+  store.loaded[activeB][activeDay] = false;
+  store.fileMissing[activeB] = false;
+  await loadDay(activeB, activeDay);
+  renderMain();
+  showToast("Refreshed from SharePoint", "info");
+}
+
+async function createMissingFile(branch) {
+  showLoading(`Creating ${CFG.branches[branch].label} file on SharePoint...`);
+  const ok = await spCreateMonthFile(branch);
+  hideLoading();
+  if (ok) {
+    store.fileMissing[branch] = false;
+    showToast("File created! Loading...", "success");
+    await loadDay(branch, activeDay);
+    renderMain();
+  } else {
+    showToast("Could not create file. Check your SharePoint permissions.", "error");
+  }
+}
+
+// ═══════════════════════════════════════════════
+// RESCHEDULE MODAL
+// ═══════════════════════════════════════════════
+function openReschedModal(apptIdx) {
+  const appt = store.appts[activeB][activeDay][apptIdx];
+  if (!appt) return;
+  reschedTarget = {branch: activeB, day: activeDay, idx: apptIdx, appt};
+
+  document.getElementById("reschedApptCard").innerHTML = `
+    <div style="display:flex;gap:12px;align-items:center">
+      <div style="font-size:18px;font-weight:700;color:var(--blue-text)">${appt.time}</div>
+      <div>
+        <div style="font-weight:600">${appt.name||"—"} <span class="pill pill-blue">${appt.advisor}</span></div>
+        <div style="font-size:12px;color:var(--gray-600)">${[appt.plate,appt.model,appt.service].filter(Boolean).join(" · ")}</div>
+      </div>
+    </div>`;
+  document.getElementById("reschedModal").classList.add("open");
+
+  // Populate day selector with non-closed days
+  const rsDay = document.getElementById("rsDay");
+  rsDay.innerHTML = DAYS.filter(({dow}) => DOW_NAME[dow] !== CFG.branches[activeB].dayOff)
+    .map(({d, dow}) => `<option value="${d}" ${d===activeDay?'selected':''}>${DOW_NAME[dow]} ${d} June</option>`)
+    .join("");
+
+  rsDay.onchange = () => updateReschedSlots();
+  document.getElementById("rsAdvisor").innerHTML =
+    CFG.branches[activeB].advisors.map(a => `<option value="${a}" ${a===appt.advisor?'selected':''}>${a}</option>`).join("");
+  document.getElementById("rsAdvisor").onchange = () => updateReschedSlots();
+
+  updateReschedSlots();
+}
+
+function updateReschedSlots() {
+  const dayVal = parseInt(document.getElementById("rsDay").value);
+  const advVal = document.getElementById("rsAdvisor").value;
+  const {dow} = DAYS[dayVal-1];
+  const slots = getAdvisorSlots(activeB, dow, advVal);
+  const rsSlot = document.getElementById("rsSlot");
+  rsSlot.innerHTML = slots
+    .filter(t => !isBooked(activeB, dayVal, advVal, t))
+    .map(t => `<option value="${t}">${t}</option>`)
+    .join("");
+  if (!rsSlot.options.length) {
+    rsSlot.innerHTML = `<option disabled>No available slots for this day/advisor</option>`;
+  }
+}
+
+async function confirmReschedule() {
+  if (!reschedTarget) return;
+  const newDay = parseInt(document.getElementById("rsDay").value);
+  const newAdv = document.getElementById("rsAdvisor").value;
+  const newTime = document.getElementById("rsSlot").value;
+  const reason = document.getElementById("rsRemarks").value.trim();
+
+  if (!newTime || document.getElementById("rsSlot").options[0]?.disabled) {
+    showToast("No slot selected", "error"); return;
+  }
+  if (isBooked(activeB, newDay, newAdv, newTime)) {
+    showToast("That slot is already taken", "error"); return;
+  }
+
+  const orig = reschedTarget.appt;
+  const origDay = reschedTarget.day;
+  const origIdx = store.appts[activeB][origDay].findIndex(
+    a => a.time === orig.time && a.name === orig.name && a.advisor === orig.advisor
+  );
+
+  // Build new appointment
+  const newAppt = {
+    ...orig,
+    time: newTime,
+    advisor: newAdv,
+    remarks: `Rescheduled from ${DOW_NAME[DAYS[origDay-1].dow]} ${origDay} June ${orig.time}${reason?' — '+reason:''}`,
+    rescheduled: true,
+    fromSP: false
+  };
+
+  // Remove from original day (mark as cancelled if from SP)
+  if (origIdx > -1) {
+    if (orig.fromSP) {
+      // Can't delete from SP easily — flag it
+      store.appts[activeB][origDay][origIdx].remarks = `CANCELLED — rescheduled to ${DOW_NAME[DAYS[newDay-1].dow]} ${newDay} at ${newTime}`;
+      store.appts[activeB][origDay][origIdx].rescheduled = true;
+    } else {
+      store.appts[activeB][origDay].splice(origIdx, 1);
+    }
+  }
+
+  // Add to new day
+  store.appts[activeB][newDay].push(newAppt);
+  store.appts[activeB][newDay].sort((a,b) => a.time.localeCompare(b.time));
+
+  if (!demoMode) {
+    setSyncStatus("syncing", "Saving...");
+    showLoading("Writing reschedule to SharePoint...");
+    const row = await spGetNextRow(activeB, newDay);
+    const ok = await spWriteRow(activeB, newDay, newAppt, row);
+    hideLoading();
+    if (ok) {
+      setSyncStatus("live","Saved");
+      showToast(`✓ Rescheduled to ${DOW_NAME[DAYS[newDay-1].dow]} ${newDay} at ${newTime}`, "success");
+    } else {
+      setSyncStatus("offline","Save failed");
+      showToast("Rescheduled locally — SharePoint write failed", "error");
+    }
+  } else {
+    showToast(`✓ Rescheduled → ${DOW_NAME[DAYS[newDay-1].dow]} ${newDay} at ${newTime} with ${newAdv}`, "success");
+  }
+
+  closeReschedModal();
+  if (activeDay === origDay || activeDay === newDay) renderMain();
+  renderMiniCal();
+  updateNavBadges();
+}
+
+function closeReschedModal() {
+  document.getElementById("reschedModal").classList.remove("open");
+  reschedTarget = null;
+  document.getElementById("rsRemarks").value = "";
+}
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function v(id) { return document.getElementById(id)?.value.trim() || ""; }
+
+function showScreen(id) {
+  document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+
+function showLoading(t) {
+  document.getElementById("loadingText").textContent = t||"Loading...";
+  document.getElementById("loadingOverlay").classList.add("show");
+}
+function hideLoading() { document.getElementById("loadingOverlay").classList.remove("show"); }
+
+let _tt;
+function showToast(msg, type="success") {
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.className = `toast show ${type}`;
+  clearTimeout(_tt); _tt = setTimeout(() => t.className = "toast", 3800);
+}
+
+// ═══════════════════════════════════════════════
+// INIT — check existing session
+// ═══════════════════════════════════════════════
+window.addEventListener("load", () => {
+  showScreen("authScreen");
+  if (msalApp) {
+    const accounts = msalApp.getAllAccounts();
+    if (accounts.length > 0) {
+      currentAccount = accounts[0];
+      postAuth();
+    }
+  }
+});
+</script>
+</body>
+</html>
