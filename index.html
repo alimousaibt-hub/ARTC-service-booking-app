@@ -4,226 +4,61 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Service Centre Booking System</title>
-<script src="https://alcdn.msauth.net/browser/2.38.3/js/msal-browser.min.js"></script>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --blue:#185FA5;--blue-light:#E6F1FB;--blue-dark:#0C447C;--blue-mid:#85B7EB;
-  --green:#3B6D11;--green-light:#EAF3DE;--green-mid:#C0DD97;--green-dark:#27500A;
-  --red:#A32D2D;--red-light:#FCEBEB;--red-mid:#F09595;--red-dark:#791F1F;
-  --amber:#854F0B;--amber-light:#FAEEDA;--amber-mid:#FAC775;--amber-dark:#633806;
-  --gray-50:#F8F8F7;--gray-100:#F1EFE8;--gray-200:#D3D1C7;--gray-400:#888780;
-  --gray-600:#5F5E5A;--gray-800:#2C2C2A;
-  --r:8px;--rl:12px;--border:1px solid #D3D1C7;
-}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--gray-100);color:var(--gray-800);font-size:14px;min-height:100vh}
-
-/* ── AUTH / SETUP SCREENS ── */
-.screen{display:none;align-items:center;justify-content:center;min-height:100vh;padding:2rem;flex-direction:column;gap:16px}
-.screen.show{display:flex}
-.auth-card{background:#fff;border:var(--border);border-radius:var(--rl);padding:2.5rem;max-width:440px;width:100%;text-align:center}
-.auth-card h1{font-size:20px;font-weight:600;margin-bottom:6px}
-.auth-card p{font-size:13px;color:var(--gray-600);line-height:1.6;margin-bottom:1.25rem}
-.auth-hint{font-size:11px;color:var(--gray-600);margin-top:1rem;padding-top:1rem;border-top:var(--border);line-height:1.6;text-align:left}
-.ms-btn{display:inline-flex;align-items:center;gap:10px;background:#fff;border:var(--border);border-radius:var(--r);padding:10px 20px;font-size:14px;font-weight:500;cursor:pointer;width:100%;justify-content:center;transition:background .15s;font-family:inherit}
-.ms-btn:hover{background:var(--gray-50)}
-.setup-card{background:#fff;border:var(--border);border-radius:var(--rl);padding:2rem;max-width:520px;width:100%}
-.setup-card h2{font-size:16px;font-weight:600;margin-bottom:4px}
-.setup-card .sub{font-size:12px;color:var(--gray-600);margin-bottom:1.25rem;line-height:1.5}
-.info-box{background:var(--blue-light);border:1px solid var(--blue-mid);border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--blue-dark);margin-bottom:12px;line-height:1.6}
-.warn-box{background:var(--amber-light);border:1px solid var(--amber-mid);border-radius:var(--r);padding:10px 12px;font-size:12px;color:var(--amber-dark);margin-bottom:12px;line-height:1.6}
-
-/* ── APP SHELL ── */
-#app{display:none;flex-direction:column;min-height:100vh}
-#app.show{display:flex}
-.topbar{background:#fff;border-bottom:var(--border);padding:0 1.25rem;height:50px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;flex-shrink:0}
-.logo{width:30px;height:30px;background:var(--blue-light);border-radius:var(--r);display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.topbar-title{font-weight:600;font-size:14px}
-.topbar-month{font-size:12px;color:var(--gray-600);margin-left:2px}
-.topbar-right{margin-left:auto;display:flex;align-items:center;gap:6px}
-.pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500}
-.pill-live{background:var(--green-light);color:var(--green-dark)}
-.pill-demo{background:var(--amber-light);color:var(--amber-dark)}
-.pill-sync{background:var(--blue-light);color:var(--blue-dark)}
-.pill-err{background:var(--red-light);color:var(--red-dark)}
-.dot{width:6px;height:6px;border-radius:50%;background:currentColor;flex-shrink:0}
-.user-chip{display:flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;border:var(--border);font-size:12px;color:var(--gray-600)}
-.tbtn{padding:4px 10px;border-radius:var(--r);border:var(--border);background:#fff;font-size:12px;cursor:pointer;font-family:inherit;color:var(--gray-800)}
-.tbtn:hover{background:var(--gray-50)}
-
-/* ── LAYOUT ── */
-.layout{display:flex;flex:1;overflow:hidden;min-height:0}
-.sidebar{width:196px;background:#fff;border-right:var(--border);padding:.75rem 0;flex-shrink:0;overflow-y:auto;display:flex;flex-direction:column;gap:0}
-.sb-label{font-size:10px;font-weight:700;color:var(--gray-400);letter-spacing:.07em;text-transform:uppercase;padding:0 1rem;margin:8px 0 4px}
-.nav-btn{display:flex;align-items:center;gap:7px;padding:6px 10px;margin:0 6px;border-radius:var(--r);cursor:pointer;font-size:13px;color:var(--gray-600);border:none;background:none;width:calc(100% - 12px);text-align:left;font-family:inherit;transition:all .12s}
-.nav-btn:hover{background:var(--gray-100);color:var(--gray-800)}
-.nav-btn.active{background:var(--blue-light);color:var(--blue-dark);font-weight:500}
-.nav-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;background:var(--gray-200)}
-.nb-count{margin-left:auto;font-size:10px;padding:1px 6px;border-radius:10px;background:var(--gray-200);color:var(--gray-800)}
-.nb-count.warn{background:var(--amber-light);color:var(--amber-dark)}
-.nb-count.full{background:var(--red-light);color:var(--red-dark)}
-.sb-divider{border:none;border-top:var(--border);margin:8px 0}
-.mini-cal-wrap{padding:0 .75rem .75rem}
-.mc-header{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px}
-.mc-dow{font-size:9px;color:var(--gray-400);text-align:center;font-weight:600;padding-bottom:1px}
-.mc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.mc-day{aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:10px;border-radius:4px;cursor:pointer;font-weight:500;color:var(--gray-600);border:1px solid transparent;transition:all .1s}
-.mc-day:hover:not(.mc-closed):not(.mc-empty){background:var(--gray-100)}
-.mc-day.mc-today{border-color:var(--blue);color:var(--blue-dark)}
-.mc-day.mc-sel{background:var(--blue);color:#fff;border-color:var(--blue)}
-.mc-day.mc-closed{color:var(--gray-200);cursor:default}
-.mc-day.mc-has{background:var(--green-light);color:var(--green-dark)}
-.mc-day.mc-near{background:var(--amber-light);color:var(--amber-dark)}
-.mc-day.mc-full{background:var(--red-light);color:var(--red-dark)}
-.mc-day.mc-empty{cursor:default}
-
-/* ── MAIN ── */
-.main{flex:1;overflow-y:auto;padding:1.25rem;min-width:0}
-
-/* ── DAY HEADER ── */
-.day-hdr{display:flex;align-items:center;gap:10px;margin-bottom:1.1rem}
-.dh-nav{width:30px;height:30px;border-radius:var(--r);border:var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;line-height:1;flex-shrink:0;transition:background .1s}
-.dh-nav:hover{background:var(--gray-100)}
-.dh-nav:disabled{opacity:.3;cursor:not-allowed}
-.dh-title{font-size:17px;font-weight:600}
-.dh-sub{font-size:12px;color:var(--gray-600);margin-top:1px}
-.dh-right{margin-left:auto;display:flex;gap:6px;align-items:center}
-
-/* ── STATS ── */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:1rem}
-.stat{background:#fff;border:var(--border);border-radius:var(--rl);padding:11px 13px}
-.stat-v{font-size:22px;font-weight:600;line-height:1}
-.stat-k{font-size:11px;color:var(--gray-600);margin-top:3px}
-.stat.s-warn .stat-v{color:var(--amber)}
-.stat.s-red .stat-v{color:var(--red)}
-
-/* ── CAPACITY BAR ── */
-.cap-wrap{background:#fff;border:var(--border);border-radius:var(--rl);padding:12px 14px;margin-bottom:1rem}
-.cap-hdr{display:flex;justify-content:space-between;font-size:12px;color:var(--gray-600);margin-bottom:6px}
-.cap-bar{height:7px;background:var(--gray-100);border-radius:4px;overflow:hidden}
-.cap-fill{height:100%;border-radius:4px;transition:width .4s}
-
-/* ── GRID ── */
-.cgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:.9rem}
-@media(max-width:860px){.cgrid{grid-template-columns:1fr}}
-
-/* ── CARD ── */
-.card{background:#fff;border:var(--border);border-radius:var(--rl);padding:.9rem 1.1rem;margin-bottom:.9rem}
-.card:last-child{margin-bottom:0}
-.card-ttl{font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
-
-/* ── ADVISOR TABS ── */
-.adv-tabs{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px}
-.adv-tab{padding:4px 11px;border-radius:20px;border:var(--border);font-size:12px;cursor:pointer;background:#fff;color:var(--gray-600);transition:all .1s;font-family:inherit}
-.adv-tab:hover{border-color:var(--gray-400)}
-.adv-tab.active{background:var(--blue-light);color:var(--blue-dark);border-color:var(--blue-mid);font-weight:500}
-.adv-tab.at-full{background:var(--red-light);color:var(--red-dark);border-color:var(--red-mid)}
-
-/* ── SLOT GRID ── */
-.slot-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(62px,1fr));gap:4px;margin-bottom:10px;max-height:200px;overflow-y:auto}
-.slot{padding:5px 3px;border-radius:var(--r);border:var(--border);text-align:center;font-size:11px;cursor:pointer;user-select:none;transition:all .1s;line-height:1.4;font-weight:500}
-.sl-free{background:var(--green-light);border-color:var(--green-mid);color:var(--green-dark)}
-.sl-free:hover{background:var(--green-mid)}
-.sl-taken{background:var(--red-light);border-color:var(--red-mid);color:var(--red-dark);cursor:not-allowed;opacity:.65}
-.sl-sel{background:var(--blue-light);border-color:var(--blue-mid);color:var(--blue-dark);outline:2px solid var(--blue)}
-.sl-cutoff{background:var(--gray-100);border-color:var(--gray-200);color:var(--gray-400);cursor:not-allowed;opacity:.5}
-
-/* ── FORM ── */
-.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:10px}
-.fg{display:flex;flex-direction:column;gap:3px}
-.fg.full{grid-column:1/-1}
-.fg label{font-size:11px;color:var(--gray-600);font-weight:500}
-.fg input,.fg select,.fg textarea{padding:6px 8px;border-radius:var(--r);border:var(--border);font-size:13px;font-family:inherit;background:#fff;color:var(--gray-800);transition:border-color .15s;width:100%}
-.fg input:focus,.fg select:focus{outline:none;border-color:var(--blue);box-shadow:0 0 0 3px rgba(24,95,165,.1)}
-.fg input.err{border-color:var(--red)}
-.fg input:disabled,.fg select:disabled{background:var(--gray-50);color:var(--gray-400)}
-
-/* ── BUTTONS ── */
-.btn{padding:7px 14px;border-radius:var(--r);border:var(--border);background:#fff;font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:5px;transition:all .15s;white-space:nowrap}
-.btn:hover{background:var(--gray-100)}
-.btn:disabled{opacity:.45;cursor:not-allowed}
-.btn-primary{background:var(--blue);color:#fff;border-color:var(--blue)}
-.btn-primary:hover:not(:disabled){background:var(--blue-dark)}
-.btn-danger{background:var(--red-light);color:var(--red-dark);border-color:var(--red-mid)}
-.btn-danger:hover{background:#F7C1C1}
-.btn-warn{background:var(--amber-light);color:var(--amber-dark);border-color:var(--amber-mid)}
-.btn-warn:hover{background:var(--amber-mid)}
-.btn-row{display:flex;gap:7px;align-items:center;flex-wrap:wrap}
-.sec-div{font-size:10px;font-weight:700;color:var(--gray-400);text-transform:uppercase;letter-spacing:.07em;margin:10px 0 6px;padding-bottom:4px;border-bottom:var(--border)}
-
-/* ── APPOINTMENT LIST ── */
-.appt-list{display:flex;flex-direction:column;gap:4px;max-height:380px;overflow-y:auto}
-.appt-row{background:var(--gray-50);border-radius:var(--r);padding:8px 10px;display:flex;align-items:flex-start;gap:7px;border:1px solid transparent;transition:border-color .1s}
-.appt-row:hover{border-color:var(--gray-200)}
-.appt-row.rescheduled{border-left:3px solid var(--amber);padding-left:8px}
-.at{font-size:12px;font-weight:600;color:var(--blue-dark);min-width:42px;flex-shrink:0;margin-top:1px}
-.ai{flex:1;min-width:0}
-.an{font-size:13px;font-weight:500;display:flex;align-items:center;gap:5px;flex-wrap:wrap}
-.adv-badge{font-size:10px;background:var(--blue-light);color:var(--blue-dark);padding:1px 6px;border-radius:10px;font-weight:500}
-.rsch-badge{font-size:10px;background:var(--amber-light);color:var(--amber-dark);padding:1px 6px;border-radius:10px;font-weight:500}
-.ad{font-size:11px;color:var(--gray-600);margin-top:2px}
-.appt-actions{display:flex;gap:4px;flex-shrink:0;margin-top:1px}
-.icon-btn{width:26px;height:26px;border-radius:var(--r);border:var(--border);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:12px;transition:background .1s;flex-shrink:0}
-.icon-btn:hover{background:var(--gray-100)}
-.icon-btn.ib-warn:hover{background:var(--amber-light)}
-.icon-btn.ib-red:hover{background:var(--red-light)}
-
-/* ── RESCHEDULE MODAL ── */
-.modal-wrap{display:none;position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:500;align-items:center;justify-content:center;padding:1rem}
-.modal-wrap.show{display:flex}
-.modal{background:#fff;border-radius:var(--rl);padding:1.5rem;max-width:480px;width:100%;border:var(--border)}
-.modal h3{font-size:16px;font-weight:600;margin-bottom:4px}
-.modal .msub{font-size:12px;color:var(--gray-600);margin-bottom:1.25rem;line-height:1.5}
-.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;padding-top:1rem;border-top:var(--border)}
-.rsch-appt-preview{background:var(--gray-50);border-radius:var(--r);padding:10px 12px;margin-bottom:1rem;font-size:13px}
-.rsch-appt-preview .rap-name{font-weight:600;margin-bottom:2px}
-.rsch-appt-preview .rap-detail{font-size:12px;color:var(--gray-600)}
-
-/* ── ADVISOR LOAD ── */
-.adv-load{margin-bottom:8px}
-.adv-load-hdr{display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px}
-.adv-load-bar{height:5px;background:var(--gray-100);border-radius:3px;overflow:hidden}
-.adv-load-fill{height:100%;border-radius:3px;transition:width .3s}
-
-/* ── EMPTY / CLOSED ── */
-.empty-state{text-align:center;padding:2rem 1rem;color:var(--gray-600)}
-.empty-icon{font-size:28px;margin-bottom:8px;opacity:.4}
-.closed-banner{background:var(--amber-light);border:1px solid var(--amber-mid);border-radius:var(--rl);padding:2rem;text-align:center;color:var(--amber-dark);font-weight:500}
-.no-file-banner{background:var(--red-light);border:1px solid var(--red-mid);border-radius:var(--rl);padding:1.25rem;color:var(--red-dark);font-size:13px;margin-bottom:1rem}
-.no-file-banner strong{display:block;margin-bottom:4px;font-size:14px}
-
-/* ── LOADING / TOAST ── */
-#loader{display:none;position:fixed;inset:0;background:rgba(248,248,247,.82);z-index:800;align-items:center;justify-content:center;flex-direction:column;gap:10px}
-#loader.show{display:flex}
-.spinner{width:26px;height:26px;border:3px solid var(--gray-200);border-top-color:var(--blue);border-radius:50%;animation:spin .65s linear infinite}
-@keyframes spin{to{transform:rotate(360deg)}}
-#loader-txt{font-size:13px;color:var(--gray-600)}
-#toast{position:fixed;bottom:20px;right:20px;background:#fff;border:var(--border);border-radius:var(--rl);padding:10px 14px;font-size:13px;font-weight:500;z-index:900;display:none;align-items:center;gap:7px;max-width:300px;box-shadow:0 2px 8px rgba(0,0,0,.08)}
-#toast.show{display:flex}
-#toast.t-ok{border-color:var(--green-mid);color:var(--green-dark)}
-#toast.t-err{border-color:var(--red-mid);color:var(--red-dark)}
-#toast.t-info{border-color:var(--blue-mid);color:var(--blue-dark)}
-#toast.t-warn{border-color:var(--amber-mid);color:var(--amber-dark)}
-hr.div{border:none;border-top:var(--border);margin:10px 0}
-</style>
+<link rel="stylesheet" href="styles.css">
 </head>
 <body>
 
 <!-- AUTH -->
 <div id="authScreen" class="screen show">
-  <div class="auth-card">
-    <div style="width:48px;height:48px;background:var(--blue-light);border-radius:var(--rl);display:flex;align-items:center;justify-content:center;margin:0 auto 14px">
-      <svg width="24" height="24" fill="none" stroke="var(--blue-dark)" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="8" cy="14" r=".5" fill="currentColor"/><circle cx="12" cy="14" r=".5" fill="currentColor"/><circle cx="16" cy="14" r=".5" fill="currentColor"/></svg>
+  <div class="auth-card" style="max-width:480px">
+    <div style="width:44px;height:44px;background:var(--blue-light);border-radius:var(--rl);display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+      <svg width="22" height="22" fill="none" stroke="var(--blue-dark)" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/><circle cx="8" cy="14" r=".5" fill="currentColor"/><circle cx="12" cy="14" r=".5" fill="currentColor"/></svg>
     </div>
     <h1>Service Centre Bookings</h1>
-    <p>Sign in with your Microsoft work account to access and update your SharePoint booking files.</p>
-    <button class="ms-btn" onclick="doSignIn()">
-      <svg width="18" height="18" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
-      Sign in with Microsoft
-    </button>
-    <div class="auth-hint">
-      <strong>Uses your existing work credentials.</strong> The app reads and writes only to SharePoint files you already have access to — nothing is stored externally.<br><br>
-      If sign-in is blocked by your organisation, click <a href="#" onclick="enterDemo();return false">Enter demo mode</a> to test the interface first.
+    <p>Connect using your existing Microsoft work account via Graph Explorer — no app registration needed.</p>
+
+    <div style="display:flex;flex-direction:column;gap:10px;text-align:left;margin-bottom:1rem">
+      <!-- Step 1 -->
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">1</div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600;margin-bottom:3px">Open Graph Explorer and sign in</div>
+          <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank" class="ms-btn" style="font-size:12px;padding:7px 14px;margin-bottom:0">
+            <svg width="16" height="16" viewBox="0 0 21 21"><rect x="1" y="1" width="9" height="9" fill="#F25022"/><rect x="11" y="1" width="9" height="9" fill="#7FBA00"/><rect x="1" y="11" width="9" height="9" fill="#00A4EF"/><rect x="11" y="11" width="9" height="9" fill="#FFB900"/></svg>
+            Open Graph Explorer ↗
+          </a>
+        </div>
+      </div>
+      <!-- Step 2 -->
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">2</div>
+        <div style="font-size:12px;color:var(--gray-600);line-height:1.6">Sign in with your <strong>Alrostamani work account</strong> (top-left avatar → Sign in to Graph Explorer)</div>
+      </div>
+      <!-- Step 3 -->
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">3</div>
+        <div style="font-size:12px;color:var(--gray-600);line-height:1.6">Click the <strong>Access token</strong> tab (next to Request headers), then click <strong>Copy</strong></div>
+      </div>
+      <!-- Step 4 -->
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div style="width:22px;height:22px;border-radius:50%;background:var(--blue);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">4</div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600;margin-bottom:4px">Paste your access token below</div>
+          <textarea id="token-input" placeholder="eyJ0eXAiOiJKV1QiLCJub..." rows="3"
+            style="width:100%;padding:7px 9px;border-radius:var(--r);border:var(--border);font-size:11px;font-family:monospace;resize:vertical;color:var(--gray-800);background:#fff;transition:border-color .15s"
+            onfocus="this.style.borderColor='var(--blue)'" onblur="this.style.borderColor=''"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="doTokenConnect()">Connect</button>
+      <button class="btn" onclick="enterDemo()">Demo mode</button>
+    </div>
+
+    <div class="auth-hint" style="margin-top:.9rem">
+      Tokens expire after ~1 hour. The app will warn you before expiry and prompt for a fresh one.<br>
+      Your token is stored in this browser tab only — it is never sent anywhere except directly to Microsoft Graph.
     </div>
   </div>
 </div>
@@ -232,78 +67,47 @@ hr.div{border:none;border-top:var(--border);margin:10px 0}
 <div id="setupScreen" class="screen">
   <div class="setup-card">
     <h2>Connect to SharePoint</h2>
-    <p class="sub">One-time setup. Your settings are saved in this browser — agents only do this once.</p>
-    <div class="info-box">
-      <strong>How to find your site URL:</strong> Open any booking Excel file in SharePoint and copy everything up to <code>/sites/YourSiteName</code> from the address bar.<br>
-      Expected file path: <code>[Folder]/[BRANCH]/[Branch Month Year].xlsx</code><br>
-      Example: <code>Service Bookings/RAK/RAK June 2026.xlsx</code>
-    </div>
-    <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:1rem">
-      <div class="fg"><label>SharePoint site URL</label><input id="cfg-site" type="url" placeholder="https://yourcompany.sharepoint.com/sites/ServiceOps"></div>
-      <div class="fg"><label>Document library name</label><input id="cfg-lib" value="Documents" placeholder="Documents"></div>
-      <div class="fg"><label>Root folder path (inside library)</label><input id="cfg-folder" placeholder="Service Bookings/2026"></div>
-    </div>
-    <div style="font-size:12px;color:var(--gray-600);margin-bottom:12px;line-height:1.6">
-      Files must be named exactly: <strong>RAK June 2026.xlsx</strong>, <strong>SZR June 2026.xlsx</strong>, etc.<br>
-      If a file doesn't exist yet the app will warn you and work in local mode for that branch.
+    <p class="sub">One-time setup per browser. Confirm or adjust the pre-filled values for your Data Exchange site.</p>
+    <div class="info-box">Expected path: <code>[Folder]/[BRANCH]/[Branch Month Year].xlsx</code><br>e.g. <code>Service Bookings/RAK/RAK June 2026.xlsx</code></div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:.9rem">
+      <div class="fg"><label>SharePoint site URL</label><input id="cfg-site" type="url" placeholder="https://alrostamanigroupae.sharepoint.com/sites/DataExchange"></div>
+      <div class="fg"><label>Document library</label><input id="cfg-lib" value="ARTC CRM Operations"></div>
+      <div class="fg"><label>Root folder path (leave blank if files are in library root)</label><input id="cfg-folder" placeholder="Service Bookings/2026"></div>
     </div>
     <div class="btn-row">
       <button class="btn btn-primary" onclick="saveSetup()">Save &amp; continue</button>
-      <button class="btn" onclick="enterDemo()">Demo mode (no SharePoint)</button>
+      <button class="btn" onclick="enterDemo()">Demo mode</button>
     </div>
   </div>
 </div>
 
-<!-- MAIN APP -->
-<div id="app">
-  <div class="topbar">
-    <div class="logo">
-      <svg width="16" height="16" fill="none" stroke="var(--blue-dark)" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+<!-- TWIXOR LOGIN MODAL -->
+<div class="modal-wrap" id="wa-login-modal">
+  <div class="modal">
+    <h3>💬 WhatsApp — Twixor Login</h3>
+    <p class="msub">Enter your Twixor credentials to enable WhatsApp confirmations. Token is stored for this browser session only.</p>
+    <div class="fgrid" style="margin-bottom:0">
+      <div class="fg full"><label>Username / Email</label><input id="twx-user" type="text" placeholder="your.email@company.com"></div>
+      <div class="fg full"><label>Password</label><input id="twx-pass" type="password" placeholder="••••••••"></div>
     </div>
-    <span class="topbar-title">Service Bookings</span>
-    <span class="topbar-month" id="tb-month"></span>
-    <div class="topbar-right">
-      <span class="pill pill-demo" id="sync-pill"><span class="dot"></span><span id="sync-lbl">Demo</span></span>
-      <div class="user-chip"><svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="tb-user">Agent</span></div>
-      <button class="tbtn" onclick="doSignOut()">Sign out</button>
-      <button class="tbtn" onclick="showSetup()">&#9881; Settings</button>
-    </div>
-  </div>
-  <div class="layout">
-    <div class="sidebar">
-      <div class="sb-label">Branches</div>
-      <div id="branch-nav"></div>
-      <hr class="sb-divider">
-      <div class="sb-label">June 2026</div>
-      <div class="mini-cal-wrap">
-        <div class="mc-header" id="mc-hdr"></div>
-        <div class="mc-grid" id="mc-grid"></div>
-      </div>
-    </div>
-    <div class="main" id="main-content">
-      <div class="empty-state"><div class="empty-icon">📋</div><p>Select a branch to start</p></div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeTwxModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="doTwxLogin()">Sign in to Twixor</button>
     </div>
   </div>
 </div>
 
 <!-- RESCHEDULE MODAL -->
 <div class="modal-wrap" id="rsch-modal">
-  <div class="modal">
-    <h3>Reschedule appointment</h3>
-    <p class="msub">Select a new date, advisor, and time slot. The original booking will be marked as rescheduled and a new one created.</p>
-    <div class="rsch-appt-preview" id="rsch-preview"></div>
+  <div class="modal" style="max-width:460px">
+    <h3>↻ Reschedule appointment</h3>
+    <p class="msub">The original slot is freed immediately. A new booking is created on the target day and a reschedule log entry is appended to the original day's sheet in SharePoint.</p>
+    <div class="rsch-preview" id="rsch-preview"></div>
     <div class="fgrid">
-      <div class="fg"><label>New date (June 2026)</label>
-        <select id="rsch-day"></select>
-      </div>
-      <div class="fg"><label>New advisor</label>
-        <select id="rsch-adv"></select>
-      </div>
-      <div class="fg full"><label>Available time slots</label>
-        <select id="rsch-slot"></select>
-      </div>
-      <div class="fg full"><label>Reason for reschedule</label>
-        <input id="rsch-reason" type="text" placeholder="Customer request, vehicle not ready, etc."></div>
+      <div class="fg"><label>New date</label><select id="rsch-day"></select></div>
+      <div class="fg"><label>New advisor</label><select id="rsch-adv"></select></div>
+      <div class="fg full"><label>Available time slots</label><select id="rsch-slot"></select></div>
+      <div class="fg full"><label>Reason for reschedule</label><input id="rsch-reason" placeholder="Customer request, vehicle not ready…"></div>
     </div>
     <div class="modal-footer">
       <button class="btn" onclick="closeRschModal()">Cancel</button>
@@ -312,856 +116,98 @@ hr.div{border:none;border-top:var(--border);margin:10px 0}
   </div>
 </div>
 
-<div id="loader"><div class="spinner"></div><div id="loader-txt">Loading...</div></div>
+<!-- WHATSAPP CONFIRM MODAL -->
+<div class="modal-wrap" id="wa-confirm-modal">
+  <div class="modal" style="max-width:420px">
+    <h3>📲 Send WhatsApp confirmation</h3>
+    <p class="msub">Sends the appointment_confirmation template to the customer.</p>
+    <div id="wa-preview" style="background:var(--gray-50);border-radius:var(--r);padding:10px 12px;margin-bottom:12px;font-size:12px"></div>
+    <div class="fgrid" style="margin-bottom:0">
+      <div class="fg full"><label>Phone number (format: 971XXXXXXXXX)</label>
+        <input id="wa-phone" placeholder="971XXXXXXXXX" maxlength="15" oninput="this.value=this.value.replace(/[^0-9]/g,'')">
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeWaModal()">Cancel</button>
+      <button class="btn btn-wa" onclick="sendWa()">Send WhatsApp</button>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="topbar">
+    <div class="logo"><svg width="14" height="14" fill="none" stroke="var(--blue-dark)" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></div>
+    <span class="topbar-title">Service Bookings</span>
+    <span class="topbar-month" id="tb-month"></span>
+    <div class="topbar-right">
+      <span class="pill pill-demo" id="sync-pill"><span class="pdot"></span><span id="sync-lbl">Demo</span></span>
+      <span class="wa-chip off" id="wa-chip" onclick="openTwxModal()" title="Connect WhatsApp">💬 <span id="wa-lbl">WA: not connected</span></span>
+      <div class="user-chip"><svg width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg><span id="tb-user">Agent</span></div>
+      <button class="tbtn" onclick="toggleLog()">📋 Log</button>
+      <button class="tbtn" onclick="showSetup()">⚙</button>
+      <button class="tbtn" onclick="doSignOut()">Sign out</button>
+    </div>
+  </div>
+  <!-- Token expiry warning — shown by JS when < 10 min remain -->
+  <div id="token-warn" style="display:none;background:var(--amber-light);border-bottom:1px solid var(--amber-mid);padding:5px 1.1rem;font-size:11px;color:var(--amber-dark);display:none;align-items:center;gap:8px">
+    <span>⚠ Your access token expires soon.</span>
+    <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank" style="color:var(--amber-dark);font-weight:600">Refresh in Graph Explorer ↗</a>
+    <span>then</span>
+    <button class="btn btn-warn" style="padding:2px 9px;font-size:11px" onclick="openTokenRefresh()">Paste new token</button>
+  </div>
+  <div class="layout">
+    <div class="sidebar">
+      <div class="sb-label">Branches</div>
+      <div id="branch-nav"></div>
+      <hr class="sb-div">
+      <div class="sb-label">June 2026</div>
+      <div class="mc-wrap">
+        <div class="mc-dow-row" id="mc-dow"></div>
+        <div class="mc-grid" id="mc-grid"></div>
+      </div>
+    </div>
+    <div class="main" id="main-content">
+      <div class="empty-state"><div style="font-size:26px;opacity:.3;margin-bottom:8px">📋</div><p>Select a branch</p></div>
+    </div>
+  </div>
+</div>
+
+<!-- TOKEN REFRESH MODAL -->
+<div class="modal-wrap" id="token-refresh-modal">
+  <div class="modal" style="max-width:420px">
+    <h3>🔑 Refresh access token</h3>
+    <p class="msub">Your token has expired. Open Graph Explorer, copy a fresh token, and paste it below.</p>
+    <div style="display:flex;gap:8px;margin-bottom:10px">
+      <a href="https://developer.microsoft.com/en-us/graph/graph-explorer" target="_blank" class="btn" style="flex:1;justify-content:center;font-size:12px">Open Graph Explorer ↗</a>
+    </div>
+    <div class="fg full">
+      <label>Paste new access token</label>
+      <textarea id="token-refresh-input" rows="3" placeholder="eyJ0eXAiOiJKV1QiLCJub..."
+        style="width:100%;padding:7px 9px;border-radius:var(--r);border:var(--border);font-size:11px;font-family:monospace;resize:vertical;color:var(--gray-800)"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeTokenRefresh()">Cancel</button>
+      <button class="btn btn-primary" onclick="applyRefreshedToken()">Apply token</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOG PANEL -->
+<div class="log-panel" id="log-panel">
+  <div class="log-hdr">
+    <h4>Agent interaction log</h4>
+    <div style="display:flex;gap:6px">
+      <button class="tbtn" onclick="exportLog()">Export</button>
+      <button class="tbtn" onclick="toggleLog()">✕</button>
+    </div>
+  </div>
+  <div class="log-body" id="log-body"></div>
+</div>
+
+<div id="loader"><div class="spinner"></div><div id="loader-txt">Loading…</div></div>
 <div id="toast"></div>
 
-<script>
-// ══════════════════════════════════════════════════════
-// CONFIG — adjust branch/capacity details here
-// ══════════════════════════════════════════════════════
-const CFG = {
-  month: 6, year: 2026, monthName: "June 2026",
-  cutoffHour: 15, // 3 PM — no bookings at or after this time
-  workStart: 8,   // 8 AM first slot
-  slotMins: 15,   // 15-min slots
-
-  branches: {
-    RAK:      { label:"RAK",      dayOff:"Sunday",  advisors:["Arun","Hanan"],             cap:{wday:15, fri:10, sat:15, sun:0}  },
-    SZR:      { label:"SZR",      dayOff:"Sunday",  advisors:["Khalid","Ehsan","Michille"], cap:{wday:42, fri:30, sat:42, sun:0}  },
-    Sharjah:  { label:"Sharjah",  dayOff:"Sunday",  advisors:["Omar","Hamdan"],             cap:{wday:28, fri:20, sat:35, sun:0}  },
-    Deira:    { label:"Deira",    dayOff:"Sunday",  advisors:["Ramy","Chona","Churchill"],  cap:{wday:28, fri:20, sat:35, sun:0}  },
-    Musaffah: { label:"Musaffah", dayOff:"Sunday",  advisors:["Hossam","Dayanand"],         cap:{wday:28, fri:18, sat:40, sun:0}  },
-    AlAin:    { label:"Al Ain",   dayOff:"Sunday",  advisors:["Hammad","Fazil"],            cap:{wday:15, fri:10, sat:15, sun:0}  },
-    Fujairah: { label:"Fujairah", dayOff:"Friday",  advisors:["Sharif"],                   cap:{wday:5,  fri:0,  sat:3,  sun:5}  }
-  },
-
-  // MSAL — Microsoft's public Office client, works on most tenants without IT
-  msalClientId: "d3590ed6-52b3-4102-aeff-aad2292ab01c",
-  msalAuthority: "https://login.microsoftonline.com/common",
-  scopes: ["Files.ReadWrite","Sites.ReadWrite.All","User.Read"]
-};
-
-// ══════════════════════════════════════════════════════
-// DATE HELPERS
-// ══════════════════════════════════════════════════════
-const DAYS_IN_MONTH = new Date(CFG.year, CFG.month, 0).getDate();
-const JUNE = Array.from({length: DAYS_IN_MONTH}, (_, i) => {
-  const d = i + 1;
-  return { day: d, dow: new Date(CFG.year, CFG.month - 1, d).getDay() };
-});
-const DOW_NAMES = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
-
-function dowName(d){ return DOW_NAMES[d]; }
-
-function getDayCap(branch, dow) {
-  const b = CFG.branches[branch], day = dowName(dow);
-  if (day === b.dayOff) return 0;
-  if (day === "Friday")   return b.cap.fri;
-  if (day === "Saturday") return b.cap.sat;
-  if (day === "Sunday")   return b.cap.sun ?? b.cap.wday;
-  return b.cap.wday;
-}
-
-// Generate slots for one advisor on one day — capped at 3 PM
-function advisorSlots(branch, dow, advisor) {
-  const cap = getDayCap(branch, dow);
-  if (!cap) return [];
-  const advisors = CFG.branches[branch].advisors;
-  const perAdv = Math.ceil(cap / advisors.length);
-  const slots = [];
-  for (let i = 0; i < perAdv; i++) {
-    const mins = CFG.workStart * 60 + i * CFG.slotMins;
-    const h = Math.floor(mins / 60), m = mins % 60;
-    if (h >= CFG.cutoffHour) break; // hard cutoff at 3 PM
-    slots.push(`${String(h).padStart(2,"0")}:${String(m).padStart(2,"0")}`);
-  }
-  return slots;
-}
-
-// All slots for a day across all advisors (for reschedule picker)
-function allSlotsForDay(branch, dow) {
-  if (!getDayCap(branch, dow)) return [];
-  const seen = new Set(), result = [];
-  for (const adv of CFG.branches[branch].advisors) {
-    advisorSlots(branch, dow, adv).forEach(s => { if(!seen.has(s)){seen.add(s);result.push(s);} });
-  }
-  return result;
-}
-
-function isCutoffPassed(timeStr) {
-  // True if time >= 3 PM
-  const [h] = timeStr.split(":").map(Number);
-  return h >= CFG.cutoffHour;
-}
-
-// ══════════════════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════════════════
-const appts = {}; // appts[branch][day] = [{...}]
-const spLoaded = {}; // spLoaded[branch][day] = bool
-const spFileExists = {}; // spFileExists[branch] = bool | null
-
-Object.keys(CFG.branches).forEach(b => {
-  appts[b] = {};
-  spLoaded[b] = {};
-  spFileExists[b] = null;
-  for (let d = 1; d <= DAYS_IN_MONTH; d++) appts[b][d] = [];
-});
-
-let activeB = null, activeDay = 1, activeAdv = null, selSlot = null;
-let demoMode = false, spCfg = null, msalApp = null, currentAccount = null;
-let rschTarget = null; // {branch, day, idx} — the appt being rescheduled
-
-const TODAY_DAY = (new Date().getMonth() + 1 === CFG.month && new Date().getFullYear() === CFG.year)
-  ? new Date().getDate() : 1;
-
-// ══════════════════════════════════════════════════════
-// MSAL AUTH
-// ══════════════════════════════════════════════════════
-try { msalApp = new msal.PublicClientApplication({
-  auth: { clientId: CFG.msalClientId, authority: CFG.msalAuthority, redirectUri: location.href.split("?")[0].split("#")[0] },
-  cache: { cacheLocation: "sessionStorage" }
-}); } catch(e) { console.warn("MSAL unavailable"); }
-
-async function doSignIn() {
-  if (!msalApp) { enterDemo(); return; }
-  try {
-    showLoader("Signing in…");
-    const r = await msalApp.loginPopup({ scopes: CFG.scopes });
-    currentAccount = r.account;
-    hideLoader();
-    afterAuth();
-  } catch(e) {
-    hideLoader();
-    if (e.errorCode === "user_cancelled") return;
-    // Show helpful error
-    if (e.errorCode && e.errorCode.includes("AADSTS")) {
-      toast("Your organisation requires admin approval for this app. See the auth guide below.", "t-err");
-      showAuthGuide();
-    } else {
-      toast("Sign-in failed — entering demo mode.", "t-err");
-      setTimeout(enterDemo, 1500);
-    }
-  }
-}
-
-function showAuthGuide() {
-  const card = document.querySelector(".auth-card");
-  const existing = document.getElementById("auth-guide");
-  if (existing) return;
-  const div = document.createElement("div");
-  div.id = "auth-guide";
-  div.className = "warn-box";
-  div.style.textAlign = "left";
-  div.style.marginTop = "12px";
-  div.innerHTML = `<strong>Admin approval required by your IT policy.</strong><br>
-Ask your IT admin to approve this app registration, OR:<br>
-1. Go to <a href="https://portal.azure.com" target="_blank">portal.azure.com</a> → Azure Active Directory → App registrations → New registration<br>
-2. Name it anything (e.g. "Service Booking Tool"), set Redirect URI to this page's URL<br>
-3. Under API permissions add: <code>Files.ReadWrite</code>, <code>Sites.ReadWrite.All</code>, <code>User.Read</code> (all Delegated)<br>
-4. Copy the Application (client) ID and paste it in the source code line: <code>msalClientId: "..."</code><br><br>
-For now: <a href="#" onclick="enterDemo();return false">continue in demo mode</a>`;
-  card.appendChild(div);
-}
-
-function doSignOut() {
-  if (msalApp && currentAccount) msalApp.logoutPopup({ account: currentAccount });
-  location.reload();
-}
-
-async function getToken() {
-  if (demoMode || !msalApp || !currentAccount) return null;
-  try {
-    const r = await msalApp.acquireTokenSilent({ scopes: CFG.scopes, account: currentAccount });
-    return r.accessToken;
-  } catch {
-    try { const r = await msalApp.acquireTokenPopup({ scopes: CFG.scopes }); return r.accessToken; }
-    catch { return null; }
-  }
-}
-
-function afterAuth() {
-  const saved = localStorage.getItem("svc_sp_cfg");
-  if (saved) { spCfg = JSON.parse(saved); launch(); }
-  else {
-    show("setupScreen");
-    hide("authScreen");
-  }
-}
-
-function enterDemo() {
-  demoMode = true;
-  show("app");
-  hide("authScreen"); hide("setupScreen");
-  launch();
-}
-
-// ══════════════════════════════════════════════════════
-// SETUP
-// ══════════════════════════════════════════════════════
-function saveSetup() {
-  const site = document.getElementById("cfg-site").value.trim().replace(/\/$/,"");
-  const lib  = document.getElementById("cfg-lib").value.trim() || "Documents";
-  const folder = document.getElementById("cfg-folder").value.trim().replace(/^\/|\/$/g,"");
-  if (!site) { toast("Please enter your SharePoint site URL", "t-err"); return; }
-  spCfg = { site, lib, folder };
-  localStorage.setItem("svc_sp_cfg", JSON.stringify(spCfg));
-  show("app"); hide("setupScreen");
-  launch();
-}
-
-function showSetup() {
-  if (spCfg) {
-    document.getElementById("cfg-site").value = spCfg.site || "";
-    document.getElementById("cfg-lib").value  = spCfg.lib  || "Documents";
-    document.getElementById("cfg-folder").value = spCfg.folder || "";
-  }
-  show("setupScreen"); hide("app");
-}
-
-// ══════════════════════════════════════════════════════
-// SHAREPOINT GRAPH API
-// ══════════════════════════════════════════════════════
-let _driveInfo = null;
-
-async function getDriveInfo() {
-  if (_driveInfo) return _driveInfo;
-  const token = await getToken();
-  if (!token || !spCfg) return null;
-  try {
-    const hn = new URL(spCfg.site).hostname;
-    const sp = new URL(spCfg.site).pathname;
-    const sr = await fetch(`https://graph.microsoft.com/v1.0/sites/${hn}:${sp}`, { headers:{Authorization:`Bearer ${token}`} });
-    if (!sr.ok) return null;
-    const site = await sr.json();
-    const dr = await fetch(`https://graph.microsoft.com/v1.0/sites/${site.id}/drives`, { headers:{Authorization:`Bearer ${token}`} });
-    if (!dr.ok) return null;
-    const drives = await dr.json();
-    const match = drives.value.find(d => d.name.toLowerCase() === spCfg.lib.toLowerCase()) || drives.value[0];
-    _driveInfo = { siteId: site.id, driveId: match.id };
-    return _driveInfo;
-  } catch { return null; }
-}
-
-function spFileName(branch) {
-  const months=["January","February","March","April","May","June","July","August","September","October","November","December"];
-  return `${CFG.branches[branch].label} ${months[CFG.month-1]} ${CFG.year}.xlsx`;
-}
-
-function spFilePath(branch) {
-  const file = spFileName(branch);
-  const prefix = spCfg?.folder ? `${spCfg.folder}/` : "";
-  return `${prefix}${branch}/${file}`;
-}
-
-// Check if the file exists — sets spFileExists[branch]
-async function checkFileExists(branch) {
-  if (demoMode || spFileExists[branch] !== null) return spFileExists[branch];
-  const token = await getToken();
-  const di = await getDriveInfo();
-  if (!token || !di) { spFileExists[branch] = false; return false; }
-  const path = spFilePath(branch);
-  const r = await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${di.siteId}/drives/${di.driveId}/root:/${encodeURIComponent(path)}`,
-    { headers:{Authorization:`Bearer ${token}`} }
-  );
-  spFileExists[branch] = r.ok;
-  return r.ok;
-}
-
-async function spReadSheet(branch, day) {
-  if (demoMode) return null;
-  const token = await getToken();
-  const di = await getDriveInfo();
-  if (!token || !di) return null;
-  const path = spFilePath(branch);
-  const sheetName = String(day);
-  const r = await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${di.siteId}/drives/${di.driveId}/root:/${encodeURIComponent(path)}:/workbook/worksheets('${sheetName}')/usedRange`,
-    { headers:{Authorization:`Bearer ${token}`} }
-  );
-  if (!r.ok) return null;
-  return await r.json();
-}
-
-async function spWriteRow(branch, day, rowData, targetRow) {
-  if (demoMode) return { ok: true, demo: true };
-  const token = await getToken();
-  const di = await getDriveInfo();
-  if (!token || !di) return { ok: false, reason: "no_token" };
-  const path = spFilePath(branch);
-  const sheetName = String(day);
-  const date = new Date(CFG.year, CFG.month-1, day).toLocaleDateString("en-GB");
-  const now  = new Date().toLocaleDateString("en-GB");
-  // Columns B–N (0-indexed 0=B): date, name, phone, plate, model, service, advisor, time, _, _, booking_date, booked_by, remarks
-  const values = [[
-    date, rowData.name, rowData.phone, rowData.plate,
-    rowData.model, rowData.service, rowData.advisor, rowData.time,
-    null, null, now, rowData.agent, rowData.remarks || ""
-  ]];
-  const row = targetRow || 5;
-  const r = await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${di.siteId}/drives/${di.driveId}/root:/${encodeURIComponent(path)}:/workbook/worksheets('${sheetName}')/range(address='B${row}:N${row}')`,
-    { method:"PATCH", headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"}, body:JSON.stringify({values}) }
-  );
-  return { ok: r.ok };
-}
-
-async function spUpdateCell(branch, day, row, col, value) {
-  if (demoMode) return true;
-  const token = await getToken();
-  const di = await getDriveInfo();
-  if (!token || !di) return false;
-  const path = spFilePath(branch);
-  const r = await fetch(
-    `https://graph.microsoft.com/v1.0/sites/${di.siteId}/drives/${di.driveId}/root:/${encodeURIComponent(path)}:/workbook/worksheets('${day}')/range(address='${col}${row}')`,
-    { method:"PATCH", headers:{Authorization:`Bearer ${token}`,"Content-Type":"application/json"}, body:JSON.stringify({values:[[value]]}) }
-  );
-  return r.ok;
-}
-
-// ══════════════════════════════════════════════════════
-// LOAD DATA FROM SP
-// ══════════════════════════════════════════════════════
-async function loadDay(branch, day, force = false) {
-  if ((spLoaded[branch][day] && !force) || demoMode) return;
-  // First confirm file exists
-  const exists = await checkFileExists(branch);
-  if (!exists) { spLoaded[branch][day] = true; return; }
-  setSyncPill("pill-sync", "Reading…");
-  const data = await spReadSheet(branch, day);
-  if (data && data.values) {
-    const rows = data.values;
-    const parsed = [];
-    for (let i = 4; i < rows.length; i++) {
-      const row = rows[i];
-      if (!row || (!row[1] && !row[2])) continue;
-      // Skip summary rows at bottom (they have text like "Daily summary")
-      if (typeof row[1] === "string" && row[1].toLowerCase().includes("summary")) break;
-      const rawTime = row[8]; // column I = index 8 (0=A)
-      let timeStr = "";
-      if (typeof rawTime === "number") {
-        const totalMins = Math.round(rawTime * 24 * 60);
-        timeStr = `${String(Math.floor(totalMins/60)).padStart(2,"0")}:${String(totalMins%60).padStart(2,"0")}`;
-      } else if (typeof rawTime === "string") {
-        timeStr = rawTime.substring(0,5);
-      }
-      if (!timeStr || timeStr.length < 4) continue;
-      parsed.push({
-        time: timeStr, name: String(row[2]||""), phone: String(row[3]||""),
-        plate: String(row[4]||""), model: String(row[5]||""), service: String(row[6]||""),
-        advisor: String(row[7]||""), agent: String(row[12]||""),
-        remarks: String(row[13]||""), fromSP: true, spRow: i + 1
-      });
-    }
-    appts[branch][day] = parsed.filter(a => a.name || a.time);
-  }
-  spLoaded[branch][day] = true;
-  setSyncPill(demoMode ? "pill-demo" : "pill-live", demoMode ? "Demo" : "Connected");
-}
-
-async function findNextEmptyRow(branch, day) {
-  if (demoMode) return appts[branch][day].length + 5;
-  const data = await spReadSheet(branch, day);
-  if (!data || !data.values) return 5;
-  const rows = data.values;
-  // Find last non-empty data row (starting after header rows ~row 4)
-  let lastDataRow = 4;
-  for (let i = 4; i < rows.length; i++) {
-    if (rows[i] && (rows[i][1] || rows[i][2])) lastDataRow = i;
-  }
-  return lastDataRow + 2; // +1 for 1-indexing, +1 to go past last row
-}
-
-// ══════════════════════════════════════════════════════
-// LAUNCH
-// ══════════════════════════════════════════════════════
-function launch() {
-  document.getElementById("tb-month").textContent = CFG.monthName;
-  if (currentAccount) {
-    document.getElementById("tb-user").textContent = currentAccount.name?.split(" ")[0] || "Agent";
-    setSyncPill("pill-live", "Connected");
-  } else {
-    setSyncPill("pill-demo", "Demo mode");
-  }
-  buildBranchNav();
-  buildMiniCalHeader();
-  activeDay = TODAY_DAY;
-  selectBranch(Object.keys(CFG.branches)[0]);
-}
-
-function setSyncPill(cls, label) {
-  const el = document.getElementById("sync-pill");
-  el.className = "pill " + cls;
-  document.getElementById("sync-lbl").textContent = label;
-}
-
-// ══════════════════════════════════════════════════════
-// SIDEBAR NAV
-// ══════════════════════════════════════════════════════
-function buildBranchNav() {
-  document.getElementById("branch-nav").innerHTML = Object.entries(CFG.branches).map(([id,br]) =>
-    `<button class="nav-btn" id="nb_${id}" onclick="selectBranch('${id}')">
-      <span class="nav-dot" id="nd_${id}"></span>${br.label}
-      <span class="nb-count" id="nc_${id}">—</span>
-    </button>`
-  ).join("");
-}
-
-function updateNavCounts() {
-  Object.keys(CFG.branches).forEach(b => {
-    const total = appts[b][activeDay]?.length || 0;
-    const cap = getDayCap(b, JUNE[activeDay-1].dow);
-    const el = document.getElementById(`nc_${b}`);
-    if (!el) return;
-    el.textContent = `${total}/${cap||"—"}`;
-    const pct = cap > 0 ? total/cap : 0;
-    el.className = pct >= 1 ? "nb-count full" : pct >= 0.8 ? "nb-count warn" : "nb-count";
-    const dot = document.getElementById(`nd_${b}`);
-    if (dot) dot.style.background = pct >= 1 ? "#E24B4A" : pct >= 0.8 ? "#EF9F27" : "#C0DD97";
-  });
-}
-
-async function selectBranch(branch) {
-  activeB = branch;
-  activeAdv = CFG.branches[branch].advisors[0];
-  selSlot = null;
-  document.querySelectorAll(".nav-btn").forEach(el => el.classList.remove("active"));
-  document.getElementById(`nb_${branch}`)?.classList.add("active");
-  showLoader("Loading schedule…");
-  await loadDay(branch, activeDay);
-  hideLoader();
-  renderMain();
-}
-
-// ══════════════════════════════════════════════════════
-// MINI CALENDAR
-// ══════════════════════════════════════════════════════
-function buildMiniCalHeader() {
-  document.getElementById("mc-hdr").innerHTML = ["Su","Mo","Tu","We","Th","Fr","Sa"]
-    .map(d => `<div class="mc-dow">${d}</div>`).join("");
-}
-
-function buildMiniCal() {
-  const firstDow = JUNE[0].dow;
-  let html = "";
-  for (let i = 0; i < firstDow; i++) html += `<div class="mc-day mc-empty"></div>`;
-  JUNE.forEach(({day, dow}) => {
-    const closed = activeB && dowName(dow) === CFG.branches[activeB]?.dayOff;
-    const total = activeB ? (appts[activeB][day]?.length || 0) : 0;
-    const cap = activeB ? getDayCap(activeB, dow) : 0;
-    const pct = cap > 0 ? total/cap : 0;
-    let cls = "mc-day";
-    if (closed) cls += " mc-closed";
-    else if (day === activeDay) cls += " mc-sel";
-    else if (day === TODAY_DAY) cls += " mc-today";
-    else if (pct >= 1) cls += " mc-full";
-    else if (pct >= 0.75) cls += " mc-near";
-    else if (total > 0) cls += " mc-has";
-    html += `<div class="${cls}" onclick="${closed?'':''}" ${closed?'':` onclick="jumpDay(${day})"`}>${day}</div>`;
-  });
-  document.getElementById("mc-grid").innerHTML = html;
-}
-
-function jumpDay(day) {
-  activeDay = day; selSlot = null;
-  if (activeB) {
-    showLoader("Loading…");
-    loadDay(activeB, day).then(() => { hideLoader(); renderMain(); });
-  }
-  updateNavCounts();
-}
-
-// ══════════════════════════════════════════════════════
-// MAIN RENDER
-// ══════════════════════════════════════════════════════
-function renderMain() {
-  if (!activeB) return;
-  const b = CFG.branches[activeB];
-  const {day, dow} = JUNE[activeDay-1];
-  const dayLabel = dowName(dow);
-  const isClosed = dayLabel === b.dayOff;
-  const cap = getDayCap(activeB, dow);
-  const list = appts[activeB][day];
-  const total = list.length;
-  const remaining = cap - total;
-  const pct = cap > 0 ? Math.round(total/cap*100) : 0;
-  const fillCol = pct>=90?"#E24B4A":pct>=70?"#EF9F27":"#639922";
-  const fileExists = spFileExists[activeB];
-  const adv = activeAdv || b.advisors[0];
-  const slots = advisorSlots(activeB, dow, adv);
-  const main = document.getElementById("main-content");
-
-  // Day header (always shown)
-  const hdr = `<div class="day-hdr">
-    <button class="dh-nav" onclick="jumpDay(${day>1?day-1:1})" ${day<=1?"disabled":""}>&#8249;</button>
-    <div>
-      <div class="dh-title">${dayLabel}, ${day} June 2026</div>
-      <div class="dh-sub">${b.label} Service Centre</div>
-    </div>
-    <button class="dh-nav" onclick="jumpDay(${day<DAYS_IN_MONTH?day+1:DAYS_IN_MONTH})" ${day>=DAYS_IN_MONTH?"disabled":""}>&#8250;</button>
-    <div class="dh-right">
-      <button class="btn" style="font-size:12px;padding:5px 10px" onclick="syncDay()">&#8635; Sync</button>
-    </div>
-  </div>`;
-
-  if (isClosed) {
-    main.innerHTML = hdr + `<div class="closed-banner">📅 ${b.label} is closed on ${b.dayOff}s</div>`;
-    buildMiniCal(); updateNavCounts(); return;
-  }
-
-  // File-not-found warning
-  const fileBanner = (!demoMode && fileExists === false)
-    ? `<div class="no-file-banner">
-        <strong>SharePoint file not found for this branch</strong>
-        Expected: <code>${spFilePath(activeB)}</code><br>
-        Appointments are being saved locally only. Create the file on SharePoint to enable live sync.
-       </div>` : "";
-
-  main.innerHTML = hdr + fileBanner + `
-    <div class="stats">
-      <div class="stat"><div class="stat-v">${total}</div><div class="stat-k">booked</div></div>
-      <div class="stat ${remaining<=2?'s-red':remaining<=5?'s-warn':''}"><div class="stat-v">${remaining}</div><div class="stat-k">remaining</div></div>
-      <div class="stat"><div class="stat-v">${cap}</div><div class="stat-k">capacity</div></div>
-      <div class="stat ${pct>=90?'s-red':pct>=70?'s-warn':''}"><div class="stat-v">${pct}%</div><div class="stat-k">fill rate</div></div>
-    </div>
-    <div class="cap-wrap">
-      <div class="cap-hdr"><span>${b.label} — ${dayLabel} capacity</span><span>${total} of ${cap} filled · last slot 14:45</span></div>
-      <div class="cap-bar"><div class="cap-fill" style="width:${pct}%;background:${fillCol}"></div></div>
-    </div>
-    <div class="cgrid">
-      <div>
-        <div class="card">
-          <div class="card-ttl">New appointment</div>
-          <div class="sec-div">Select advisor</div>
-          <div class="adv-tabs">${b.advisors.map(a => {
-            const cnt = list.filter(x=>x.advisor===a).length;
-            const max = advisorSlots(activeB,dow,a).length;
-            const full = max > 0 && cnt >= max;
-            return `<button class="adv-tab ${a===adv?'active':''} ${full?'at-full':''}" onclick="pickAdv('${a}')">${a} <span style="opacity:.65">${cnt}/${max}</span></button>`;
-          }).join("")}</div>
-          <div class="sec-div">Time slot <span style="font-weight:400;font-size:10px;color:var(--gray-400)">(08:00 – 14:45 max)</span></div>
-          ${slots.length ? `<div class="slot-grid">${slots.map(t => {
-            const taken = list.some(x=>x.advisor===adv && x.time===t);
-            const sel = selSlot===t;
-            return `<div class="slot ${taken?'sl-taken':sel?'sl-sel':'sl-free'}" onclick="${taken?'':'pickSlot(\''+t+'\')'}">
-              ${t}${taken?`<div style="font-size:9px;opacity:.7">taken</div>`:""}
-            </div>`;
-          }).join("")}</div>` : `<p style="font-size:12px;color:var(--gray-600);margin-bottom:8px">No available slots.</p>`}
-          <div class="sec-div">Customer details</div>
-          <div class="fgrid">
-            <div class="fg"><label>Customer name *</label><input id="f_name" placeholder="Full name"></div>
-            <div class="fg"><label>Contact number</label><input id="f_phone" placeholder="05x xxxxxxx"></div>
-            <div class="fg"><label>Licence plate</label><input id="f_plate" placeholder="RAKD042508" oninput="this.value=this.value.toUpperCase()"></div>
-            <div class="fg"><label>Vehicle model</label><input id="f_model" placeholder="Grand Vitara"></div>
-            <div class="fg full"><label>Service / repair type</label><input id="f_service" placeholder="e.g. 20K service, brake check…"></div>
-            <div class="fg"><label>Booked by (agent) *</label><input id="f_agent" placeholder="Your name"></div>
-            <div class="fg"><label>Channel</label>
-              <select id="f_channel"><option>Inbound call - IBT</option><option>WhatsApp</option><option>Walk-in</option><option>Online</option><option>Outbound call</option><option>Other</option></select>
-            </div>
-            <div class="fg full"><label>Remarks</label><input id="f_remarks" placeholder="Any notes…"></div>
-          </div>
-          <div class="btn-row">
-            <button class="btn btn-primary" id="book-btn" onclick="bookAppt()">+ Book appointment</button>
-            <button class="btn" onclick="clearForm()">Clear</button>
-          </div>
-        </div>
-      </div>
-      <div>
-        <div class="card">
-          <div class="card-ttl">Today's bookings (${total})</div>
-          ${total===0 ? `<div class="empty-state" style="padding:1rem 0"><div class="empty-icon">📋</div><p style="font-size:12px">No appointments yet</p></div>` :
-          `<div class="appt-list">${list.map((a,i) => `
-            <div class="appt-row ${a.rescheduled?'rescheduled':''}">
-              <div class="at">${a.time}</div>
-              <div class="ai">
-                <div class="an">${a.name||"—"}<span class="adv-badge">${a.advisor}</span>${a.rescheduled?`<span class="rsch-badge">rescheduled</span>`:""}</div>
-                <div class="ad">${[a.plate,a.model].filter(Boolean).join(" · ")}${a.service?" — "+a.service:""}</div>
-                ${a.agent?`<div class="ad">By: ${a.agent}${a.remarks?" · "+a.remarks:""}</div>`:""}
-              </div>
-              <div class="appt-actions">
-                <button class="icon-btn ib-warn" title="Reschedule" onclick="openRschedule(${i})">&#8635;</button>
-                ${!a.fromSP?`<button class="icon-btn ib-red" title="Cancel" onclick="cancelAppt(${i})">✕</button>`:""}
-              </div>
-            </div>`).join("")}
-          </div>`}
-        </div>
-        <div class="card">
-          <div class="card-ttl">Advisor load</div>
-          ${b.advisors.map(a => {
-            const cnt = list.filter(x=>x.advisor===a).length;
-            const max = advisorSlots(activeB,dow,a).length||1;
-            const p = Math.round(cnt/max*100);
-            const col = p>=90?"#E24B4A":p>=70?"#EF9F27":"#639922";
-            return `<div class="adv-load">
-              <div class="adv-load-hdr"><span>${a}</span><span style="color:var(--gray-600)">${cnt}/${max} (${p}%)</span></div>
-              <div class="adv-load-bar"><div class="adv-load-fill" style="width:${p}%;background:${col}"></div></div>
-            </div>`;
-          }).join("")}
-        </div>
-      </div>
-    </div>`;
-
-  buildMiniCal();
-  updateNavCounts();
-}
-
-// ══════════════════════════════════════════════════════
-// BOOKING
-// ══════════════════════════════════════════════════════
-function pickAdv(a) { activeAdv = a; selSlot = null; renderMain(); }
-function pickSlot(t) { selSlot = t; renderMain(); }
-
-async function bookAppt() {
-  const name    = v("f_name");
-  const phone   = v("f_phone");
-  const plate   = v("f_plate");
-  const model   = v("f_model");
-  const service = v("f_service");
-  const agent   = v("f_agent");
-  const channel = v("f_channel");
-  const remarks = v("f_remarks");
-
-  if (!name)  { mark("f_name");  toast("Customer name is required","t-err"); return; }
-  if (!agent) { mark("f_agent"); toast("Agent name is required","t-err");    return; }
-  if (!selSlot) { toast("Please select a time slot","t-err"); return; }
-  if (appts[activeB][activeDay].some(a=>a.advisor===activeAdv&&a.time===selSlot)) {
-    toast("That slot is already taken","t-err"); return;
-  }
-  if (isCutoffPassed(selSlot)) { toast("Cannot book slots at or after 3:00 PM","t-err"); return; }
-
-  const appt = { time:selSlot, advisor:activeAdv, name, phone, plate, model, service, agent,
-                 remarks:`${channel}${remarks?" — "+remarks:""}` };
-
-  // Local save immediately
-  appts[activeB][activeDay].push(appt);
-  appts[activeB][activeDay].sort((a,b)=>a.time.localeCompare(b.time));
-  selSlot = null;
-
-  document.getElementById("book-btn").disabled = true;
-
-  if (!demoMode && spFileExists[activeB] !== false) {
-    setSyncPill("pill-sync","Saving…");
-    showLoader("Writing to SharePoint…");
-    const nextRow = await findNextEmptyRow(activeB, activeDay);
-    const res = await spWriteRow(activeB, activeDay, appt, nextRow);
-    hideLoader();
-    if (res.ok) {
-      appt.fromSP = true; appt.spRow = nextRow;
-      setSyncPill("pill-live","Saved ✓");
-      toast(`✓ ${appt.time} booked for ${name} — saved to SharePoint`,"t-ok");
-    } else {
-      setSyncPill("pill-err","Save failed");
-      toast("Saved locally but SharePoint write failed. Sync when back online.","t-warn");
-    }
-  } else {
-    toast(`✓ ${appt.time} booked for ${name} with ${activeAdv}`,"t-ok");
-  }
-
-  clearForm();
-  renderMain();
-}
-
-function cancelAppt(i) {
-  if (!confirm("Remove this appointment?")) return;
-  appts[activeB][activeDay].splice(i,1);
-  toast("Appointment removed","t-info");
-  renderMain();
-}
-
-async function syncDay() {
-  if (!activeB) return;
-  spLoaded[activeB][activeDay] = false;
-  spFileExists[activeB] = null;
-  showLoader("Syncing from SharePoint…");
-  await loadDay(activeB, activeDay, true);
-  hideLoader();
-  renderMain();
-  toast("Refreshed from SharePoint","t-info");
-}
-
-// ══════════════════════════════════════════════════════
-// RESCHEDULE FLOW
-// ══════════════════════════════════════════════════════
-function openRschedule(idx) {
-  const a = appts[activeB][activeDay][idx];
-  if (!a) return;
-  rschTarget = { branch: activeB, day: activeDay, idx };
-
-  // Preview card
-  document.getElementById("rsch-preview").innerHTML = `
-    <div class="rap-name">${a.name||"Unknown"} — <span style="color:var(--blue-dark)">${a.time}</span> with ${a.advisor}</div>
-    <div class="rap-detail">${[a.plate,a.model,a.service].filter(Boolean).join(" · ")||"No vehicle details"}</div>`;
-
-  // Populate day selector — same branch, remaining days
-  const dayEl = document.getElementById("rsch-day");
-  dayEl.innerHTML = "";
-  JUNE.forEach(({day, dow}) => {
-    const closed = dowName(dow) === CFG.branches[activeB].dayOff;
-    if (closed) return;
-    const opt = document.createElement("option");
-    opt.value = day;
-    opt.textContent = `${day} June (${dowName(dow)})`;
-    if (day === activeDay) opt.selected = true;
-    dayEl.appendChild(opt);
-  });
-
-  // Populate advisor selector
-  const advEl = document.getElementById("rsch-adv");
-  advEl.innerHTML = CFG.branches[activeB].advisors.map(av =>
-    `<option value="${av}" ${av===a.advisor?"selected":""}>${av}</option>`
-  ).join("");
-
-  // Populate slot selector for selected day+advisor
-  updateRschSlots();
-  dayEl.addEventListener("change", updateRschSlots);
-  advEl.addEventListener("change", updateRschSlots);
-
-  document.getElementById("rsch-modal").classList.add("show");
-}
-
-function updateRschSlots() {
-  const day  = parseInt(document.getElementById("rsch-day").value);
-  const adv  = document.getElementById("rsch-adv").value;
-  const {dow}= JUNE[day-1];
-  const slots = advisorSlots(activeB, dow, adv);
-  const booked= appts[activeB][day].filter(a=>a.advisor===adv).map(a=>a.time);
-  // Exclude original slot from "taken" check if same day
-  const slotEl = document.getElementById("rsch-slot");
-  slotEl.innerHTML = "";
-  let hasOptions = false;
-  slots.forEach(t => {
-    if (booked.includes(t)) return; // skip taken
-    const opt = document.createElement("option");
-    opt.value = t;
-    opt.textContent = t;
-    slotEl.appendChild(opt);
-    hasOptions = true;
-  });
-  if (!hasOptions) {
-    const opt = document.createElement("option");
-    opt.textContent = "No available slots on this day";
-    opt.disabled = true;
-    slotEl.appendChild(opt);
-  }
-}
-
-function closeRschModal() {
-  document.getElementById("rsch-modal").classList.remove("show");
-  rschTarget = null;
-  // Remove listeners to avoid stacking
-  const d = document.getElementById("rsch-day");
-  const a = document.getElementById("rsch-adv");
-  d.replaceWith(d.cloneNode(true));
-  a.replaceWith(a.cloneNode(true));
-}
-
-async function confirmReschedule() {
-  if (!rschTarget) return;
-  const newDay    = parseInt(document.getElementById("rsch-day").value);
-  const newAdv    = document.getElementById("rsch-adv").value;
-  const newSlot   = document.getElementById("rsch-slot").value;
-  const reason    = document.getElementById("rsch-reason").value.trim();
-
-  if (!newSlot || newSlot === "No available slots on this day") {
-    toast("Please select a valid time slot","t-err"); return;
-  }
-
-  const orig = appts[rschTarget.branch][rschTarget.day][rschTarget.idx];
-  if (!orig) { closeRschModal(); return; }
-
-  // Mark original as rescheduled
-  orig.rescheduled = true;
-  orig.remarks = `Rescheduled to ${newDay} Jun ${newSlot}${reason?" — "+reason:""}`;
-
-  // Create new appointment on new day
-  const newAppt = {
-    ...orig,
-    time: newSlot, advisor: newAdv, day: newDay,
-    rescheduled: false,
-    remarks: `Rescheduled from ${rschTarget.day} Jun ${orig.time}${reason?" — "+reason:""}`,
-    fromSP: false
-  };
-  if (!appts[rschTarget.branch][newDay]) appts[rschTarget.branch][newDay] = [];
-  appts[rschTarget.branch][newDay].push(newAppt);
-  appts[rschTarget.branch][newDay].sort((a,b)=>a.time.localeCompare(b.time));
-
-  closeRschModal();
-
-  // Write to SharePoint
-  if (!demoMode && spFileExists[activeB] !== false) {
-    setSyncPill("pill-sync","Saving…");
-    showLoader("Writing reschedule to SharePoint…");
-
-    // Update original row remarks (column N = col 14, 1-indexed)
-    if (orig.spRow) {
-      await spUpdateCell(rschTarget.branch, rschTarget.day, orig.spRow, "N", orig.remarks);
-    }
-    // Write new appointment row
-    if (!spLoaded[rschTarget.branch][newDay]) await loadDay(rschTarget.branch, newDay);
-    const nextRow = await findNextEmptyRow(rschTarget.branch, newDay);
-    const res = await spWriteRow(rschTarget.branch, newDay, newAppt, nextRow);
-    hideLoader();
-
-    if (res.ok) {
-      newAppt.fromSP = true; newAppt.spRow = nextRow;
-      setSyncPill("pill-live","Saved ✓");
-      toast(`✓ Rescheduled to ${newDay} Jun at ${newSlot}`,"t-ok");
-    } else {
-      setSyncPill("pill-err","Save failed");
-      toast("Rescheduled locally but SharePoint write failed","t-warn");
-    }
-  } else {
-    toast(`✓ Rescheduled to ${newDay} Jun at ${newSlot}`,"t-ok");
-  }
-
-  renderMain();
-}
-
-// ══════════════════════════════════════════════════════
-// UTILITIES
-// ══════════════════════════════════════════════════════
-function v(id)    { return document.getElementById(id)?.value.trim() || ""; }
-function mark(id) { document.getElementById(id)?.classList.add("err"); }
-
-function clearForm() {
-  ["f_name","f_phone","f_plate","f_model","f_service","f_agent","f_remarks"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) { el.value=""; el.classList.remove("err"); }
-  });
-  selSlot = null;
-  renderMain();
-}
-
-function show(id) { document.getElementById(id).classList.add("show"); }
-function hide(id) { document.getElementById(id).classList.remove("show"); }
-
-function showLoader(txt) {
-  document.getElementById("loader-txt").textContent = txt||"Loading…";
-  document.getElementById("loader").classList.add("show");
-}
-function hideLoader() { document.getElementById("loader").classList.remove("show"); }
-
-let _toastT;
-function toast(msg, cls="t-ok") {
-  const el = document.getElementById("toast");
-  el.textContent = msg; el.className = "toast show "+cls;
-  clearTimeout(_toastT);
-  _toastT = setTimeout(()=>el.className="toast", 4000);
-}
-
-// ══════════════════════════════════════════════════════
-// BOOT — check for existing MSAL session
-// ══════════════════════════════════════════════════════
-window.addEventListener("load", () => {
-  if (!msalApp) return;
-  const accounts = msalApp.getAllAccounts();
-  if (accounts.length > 0) {
-    currentAccount = accounts[0];
-    afterAuth();
-  }
-});
-
-</script>
+<script src="app.js"></script>
 </body>
 </html>
